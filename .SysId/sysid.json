@@ -1,0 +1,11 @@
+{
+  "SysId": {
+    "Analysis Type": "General Mechanism",
+    "AnalyzerJSONLocation": "C:\\Users\\Public\\wpilib\\2022\\vscode\\sysid_data20220111-155154.json",
+    "NetworkTables Settings": {
+      "serverTeam": "7521"
+    },
+    "mode": "Client",
+    "serverTeam": "7521"
+  }
+}
