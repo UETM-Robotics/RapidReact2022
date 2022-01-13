@@ -21,6 +21,9 @@ public final class Constants {
 
         public static final int frontRightPort = 3;
         public static final int hindRightPort = 4;
+
+        public static final int mportDom = 5;
+        public static final int mportSub = 6;
     }
 
     public static final class TrajectoryConstants {
