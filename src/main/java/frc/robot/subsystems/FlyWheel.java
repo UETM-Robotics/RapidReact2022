@@ -29,6 +29,4 @@ public class FlyWheel extends SubsystemBase
         motorDom.set(speed);
         motorSub.set(speed);
     }
-
-    
 }
