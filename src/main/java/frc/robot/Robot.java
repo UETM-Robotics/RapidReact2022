@@ -8,6 +8,8 @@ package frc.robot;
 import java.io.IOException;
 import java.nio.file.Path;
 
+import com.fasterxml.jackson.databind.ser.std.RawSerializer;
+
 import edu.wpi.first.math.controller.RamseteController;
 import edu.wpi.first.math.trajectory.Trajectory;
 import edu.wpi.first.math.trajectory.TrajectoryUtil;
@@ -38,11 +40,14 @@ public class Robot extends TimedRobot {
   private XboxController ctrl = new XboxController(0);
 
   //private KinematicDriveSchematic auto;
-  private RamseteCommand auto;
+  private RamseteCommand autoA;
+  private RamseteCommand autoB;
   private RamseteController controller;
 
-  private String trajectoryPath = "paths/Test.wpilib.json";
-  private Trajectory trajectory;
+  private String trajectoryAPath = "paths/Test.wpilib.json";
+  private String trajectoryBPath = "paths/Tpt2.wpilib.json";
+  private Trajectory trajectoryA;
+  private Trajectory trajectoryB;
 
   /**
    * This function is run when the robot is first started up and should be used for any
@@ -59,13 +64,16 @@ public class Robot extends TimedRobot {
     
     controller = new RamseteController();
 
-    try{
-      Path trajPath = Filesystem.getDeployDirectory().toPath().resolve(trajectoryPath);
-      trajectory = TrajectoryUtil.fromPathweaverJson(trajPath);
-    } catch(IOException ex) {
-      trajectory = null;
-      DriverStation.reportError("Unable to open trajectory: " + trajectoryPath, ex.getStackTrace());
-    }
+    dTrain.resetEncoder();
+    dTrain.resetGyro();
+    dTrain.resetOdometry();
+    dTrain.resetPose();
+
+    dTrain.xEntry.setNumber(0);
+    dTrain.yEntry.setNumber(0);
+    dTrain.theta.setNumber(0);
+
+    
   }
 
   /**
@@ -101,19 +109,46 @@ public class Robot extends TimedRobot {
       m_autonomousCommand.schedule();
     }
 
+    try{
+      Path trajAPath = Filesystem.getDeployDirectory().toPath().resolve(trajectoryAPath);
+      Path trajBPath = Filesystem.getDeployDirectory().toPath().resolve(trajectoryBPath);
+      trajectoryA = TrajectoryUtil.fromPathweaverJson(trajAPath);
+      trajectoryB = TrajectoryUtil.fromPathweaverJson(trajBPath);
+    } catch(IOException ex) {
+      trajectoryA = null;
+      trajectoryB = null;
+      DriverStation.reportError("Unable to open trajectory: " + trajectoryAPath, ex.getStackTrace());
+      DriverStation.reportError("Unable to open trajectory: " + trajectoryBPath, ex.getStackTrace());
+    }
+
     dTrain.resetEncoder();
+    dTrain.resetGyro();
+    dTrain.resetOdometry();
+    dTrain.resetPose();
+
     dTrain.setBrake();
 
     //auto = new TraversalDriveSchematic("paths/Test.wpilib.json", dTrain::getPose, controller, dTrain.kinematics, dTrain::getSpeeds, dTrain::setOutput, false);
   
-    auto = new RamseteCommand(trajectory, dTrain::getPose, controller, dTrain.kinematics, dTrain::outputMPS, dTrain);
-
-    auto.schedule();
+    autoA = new RamseteCommand(trajectoryA, dTrain::getPose, controller, dTrain.kinematics, dTrain::outputMPS, dTrain);
+    autoB = new RamseteCommand(trajectoryB, dTrain::getPose, controller, dTrain.kinematics, dTrain::outputMPS, dTrain);
+    //auto = new RamseteCommand(trajectory, dTrain::getPose, controller, dTrain.feedforward, dTrain.kinematics, dTrain::getSpeeds, dTrain.leftController, dTrain.righController, dTrain::setOutput, dTrain);
+    autoA.schedule();
   }
 
   /** This function is called periodically during autonomous. */
   @Override
-  public void autonomousPeriodic() {}
+  public void autonomousPeriodic() {
+    if(autoA.isFinished()) {
+      autoB.schedule();
+      SmartDashboard.putString("is Finished", "true");
+    }
+
+    if(autoB.isFinished()) {
+      dTrain.setBrake();
+      dTrain.driveTank(0, 0);
+    }
+  }
 
   @Override
   public void teleopInit() {
@@ -124,15 +159,25 @@ public class Robot extends TimedRobot {
     if (m_autonomousCommand != null) {
       m_autonomousCommand.cancel();
     }
+    
+    CommandScheduler.getInstance().cancelAll();
 
-    dTrain.resetEncoder();
-    dTrain.resetGyro();
+    // dTrain.resetEncoder();
+    // dTrain.resetGyro();
+    // dTrain.resetOdometry();
+    // dTrain.resetPose();
+
+    // dTrain.xEntry.setNumber(0);
+    // dTrain.yEntry.setNumber(0);
+    // dTrain.theta.setNumber(0);
+
+    dTrain.setCoast();
   }
 
   /** This function is called periodically during operator control. */
   @Override
   public void teleopPeriodic() {
-    dTrain.driveTank(-ctrl.getRawAxis(1) * 0.5, -ctrl.getRawAxis(5) * 0.5);
+    dTrain.driveTank(-(ctrl.getRawAxis(1) - ctrl.getRawAxis(4)), -( ctrl.getRawAxis(1) + ctrl.getRawAxis(4)));
     SmartDashboard.putNumber("degrees", dTrain.getHeading().getRadians());
 
     // dTrain.driveTank(1, 1);

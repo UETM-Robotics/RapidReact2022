@@ -36,8 +36,8 @@ public class TraversalDriveSchematic extends KinematicDriveSchematic {
 
     private final double dirMod;
 
-    private final PIDController pid = new PIDController(3.1998, 0.0, 0.0);
-    private final SimpleMotorFeedforward feedforward = new SimpleMotorFeedforward(0.15275, 2.8485, 0.23021);
+    private final PIDController pid = new PIDController(1.5511, 0.0, 0.0);
+    private final SimpleMotorFeedforward feedforward = new SimpleMotorFeedforward(0.1476, 2.8719, 0.26283);
 
     public TraversalDriveSchematic(
         String trajectoryPath,

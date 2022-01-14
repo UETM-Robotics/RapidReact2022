@@ -3,18 +3,22 @@ package frc.robot.subsystems;
 import com.kauailabs.navx.frc.AHRS;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.RelativeEncoder;
+import com.revrobotics.SparkMaxPIDController;
 import com.revrobotics.CANSparkMax.IdleMode;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 
 import frc.robot.Constants.PortConstants;
 import frc.robot.Constants.TrajectoryConstants;
+import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.DifferentialDriveKinematics;
 import edu.wpi.first.math.kinematics.DifferentialDriveOdometry;
 import edu.wpi.first.math.kinematics.DifferentialDriveWheelSpeeds;
-import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.networktables.NetworkTableEntry;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.RobotBase;
@@ -39,13 +43,21 @@ public class DriveTrain extends SubsystemBase {
     private final RelativeEncoder leftEncoder;
     private final RelativeEncoder rightEncoder;
 
-    private final AHRS nav = new AHRS(Port.kMXP);;
+    private final AHRS nav;
 
     private static DriveTrain instance;
 
-    public Pose2d pose = new Pose2d();
-    public DifferentialDriveKinematics kinematics = new DifferentialDriveKinematics( Units.inchesToMeters( TrajectoryConstants.robotTrackWidthInches ) );
+    public Pose2d pose;
+    public DifferentialDriveKinematics kinematics;
     public DifferentialDriveOdometry odometry;
+
+    public SimpleMotorFeedforward feedforward;
+    public PIDController leftController;
+    public PIDController righController;
+
+    public NetworkTableEntry xEntry = NetworkTableInstance.getDefault().getTable("troubleshooting").getEntry("X");
+    public NetworkTableEntry yEntry = NetworkTableInstance.getDefault().getTable("troubleshooting").getEntry("Y");
+    public NetworkTableEntry theta = NetworkTableInstance.getDefault().getTable("troubleshooting").getEntry("Theta");
 
 
     private final AnalogGyroSim gyro;
@@ -57,6 +69,8 @@ public class DriveTrain extends SubsystemBase {
     private final EncoderSim rightEncoderSim;
 
     private final DifferentialDrivetrainSim drivetrainSim;
+
+    private final DifferentialDriveOdometry odometrySim;
 
 
 
@@ -90,13 +104,22 @@ public class DriveTrain extends SubsystemBase {
         leftEncoder = fl.getEncoder();
         rightEncoder = fr.getEncoder();
 
+        nav = new AHRS(Port.kMXP);
+
         leftEncoder.setVelocityConversionFactor( TrajectoryConstants.velocityConversionFactorMeters );
         rightEncoder.setVelocityConversionFactor( TrajectoryConstants.velocityConversionFactorMeters );
 
         leftEncoder.setPositionConversionFactor( TrajectoryConstants.positionConversionFactorMeters );
         rightEncoder.setPositionConversionFactor( TrajectoryConstants.positionConversionFactorMeters );
 
-        odometry = new DifferentialDriveOdometry( getHeading() );
+        kinematics = new DifferentialDriveKinematics( Units.inchesToMeters( TrajectoryConstants.robotTrackWidthInches ) );
+        odometry = new DifferentialDriveOdometry(getHeading(), new Pose2d(0, 0, getHeading()) );
+
+        feedforward = new SimpleMotorFeedforward(0.1476, 2.8719, 0.26283);
+        righController = new PIDController(3.3559, 0.0, 0.0);
+        leftController = new PIDController(3.3559, 0.0, 0.0);
+
+        pose = new Pose2d();
 
         if(!RobotBase.isReal()) {
 
@@ -115,6 +138,8 @@ public class DriveTrain extends SubsystemBase {
                 null
             );
 
+            odometrySim = new DifferentialDriveOdometry( new Rotation2d(gyro.getAngle()) );
+
         } else {
 
             gyro = null;
@@ -127,8 +152,18 @@ public class DriveTrain extends SubsystemBase {
 
             drivetrainSim = null;
 
+            odometrySim = null;
+
         }
 
+    }
+
+    public void invertDriveTrain(boolean inverted) {
+        fl.setInverted(inverted);
+        hl.setInverted(inverted);
+
+        fr.setInverted(!inverted);
+        hr.setInverted(!inverted);
     }
 
     public void setCoast() {
@@ -159,6 +194,16 @@ public class DriveTrain extends SubsystemBase {
     public void resetEncoder() {
         fl.getEncoder().setPosition(0);
         fr.getEncoder().setPosition(0);
+
+        pose = new Pose2d(0, 0, Rotation2d.fromDegrees(0));
+    }
+
+    public void resetPose() {
+        pose = new Pose2d(0, 0, Rotation2d.fromDegrees(0));
+    }
+
+    public void resetOdometry() {
+        odometry.resetPosition(new Pose2d(), Rotation2d.fromDegrees(0));
     }
 
     public void resetGyro() {
@@ -195,8 +240,8 @@ public class DriveTrain extends SubsystemBase {
         // fl.set(-leftVolts);
         // fr.set(-rightVolts);
 
-        fl.setVoltage(-leftVolts);
-        fr.setVoltage(-rightVolts);
+        fl.setVoltage(leftVolts);
+        fr.setVoltage(rightVolts);
     }
 
     
@@ -210,7 +255,15 @@ public class DriveTrain extends SubsystemBase {
 
     @Override
     public void periodic() {
-        pose = odometry.update(getHeading(), leftEncoder.getPosition(), rightEncoder.getPosition());
+        pose = odometry.update( getHeading() , leftEncoder.getPosition(), rightEncoder.getPosition());
+
+        SmartDashboard.putNumber("left speed", fl.get());
+        SmartDashboard.putNumber("right speed", fr.get());
+
+        var translation = odometry.getPoseMeters();
+        xEntry.setNumber(translation.getX());
+        yEntry.setNumber(translation.getY());
+        theta.setNumber( translation.getRotation().getDegrees() );
     }
     
     @Override
