@@ -8,22 +8,17 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.DifferentialDriveKinematics;
 import edu.wpi.first.math.kinematics.DifferentialDriveWheelSpeeds;
 import edu.wpi.first.math.trajectory.Trajectory;
-import edu.wpi.first.math.trajectory.TrajectoryUtil;
-import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandBase;
 
-import java.io.IOException;
-import java.nio.file.Path;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
-public class TraversalDriveSchematic extends CommandBase {
+public class Temp extends CommandBase {
     private final Timer timer = new Timer();
     private final boolean usePID;
-    private Trajectory trajectory;
+    private final Trajectory trajectory;
     private final Supplier<Pose2d> pose;
     private final RamseteController follower;
     private final SimpleMotorFeedforward feedforward;
@@ -37,7 +32,7 @@ public class TraversalDriveSchematic extends CommandBase {
 
 
     /**
-     * @param String | File path where the trajectory is stored
+     * @param Trajectory | Trajectory to follow
      * 
      * @param Supplier<Pose2d> | Function that supplies the robot pose
      * 
@@ -54,7 +49,7 @@ public class TraversalDriveSchematic extends CommandBase {
      * 
      * @param BiConsumer<Double, Double> | Function that sets the output voltage of the drive motors
      */
-    public TraversalDriveSchematic(String trajPath,
+    public Temp(Trajectory trajectory,
         Supplier<Pose2d> pose,
         RamseteController controller,
         DifferentialDriveKinematics kinematics,
@@ -67,15 +62,7 @@ public class TraversalDriveSchematic extends CommandBase {
           this.feedforward = new SimpleMotorFeedforward(0.0, 0.0, 0.0);
 
 
-          try{
-            Path trajAPath = Filesystem.getDeployDirectory().toPath().resolve(trajPath);
-            trajectory = TrajectoryUtil.fromPathweaverJson(trajAPath);
-          } catch(IOException ex) {
-            trajectory = null;
-            DriverStation.reportError("Unable to open trajectory: " + trajPath, ex.getStackTrace());
-          }
-
-          
+          this.trajectory = trajectory;
           this.pose = pose;
           this.follower = controller;
           this.kinematics = kinematics;
@@ -156,7 +143,7 @@ public class TraversalDriveSchematic extends CommandBase {
             rightOutput = rightSpeedSetpoint;
         }
 
-        output.accept(leftOutput, rightOutput);
+        //output.accept(leftOutput, rightOutput);
         SmartDashboard.putNumber("left Output", leftOutput);
         SmartDashboard.putNumber("left Setpoint", leftSpeedSetpoint);
         SmartDashboard.putNumber("right Output", rightOutput);

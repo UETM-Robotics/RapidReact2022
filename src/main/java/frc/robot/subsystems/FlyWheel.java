@@ -22,11 +22,28 @@ public class FlyWheel extends SubsystemBase
         motorSub = new CANSparkMax(PortConstants.mportSub, MotorType.kBrushless);
 
         motorDom.setInverted(true);
+        motorSub.setInverted(true);
+
+        motorDom.getEncoder().setVelocityConversionFactor(4 * Math.PI / 12 / 60);
+
+        motorDom.setOpenLoopRampRate(1);
+        motorSub.setOpenLoopRampRate(1);
+
+        motorDom.setSmartCurrentLimit(45);
+        motorSub.setSmartCurrentLimit(45);
     }
 
     public void Set(double speed)
     {
-        motorDom.set(speed);
+        motorDom.set(-speed);
         motorSub.set(speed);
+    }
+
+    public double get() {
+        return motorDom.getEncoder().getVelocity();
+    }
+
+    public double getTemp() {
+        return motorSub.getMotorTemperature();
     }
 }

@@ -22,6 +22,7 @@ import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.SPI.Port;
 import edu.wpi.first.wpilibj.motorcontrol.PWMSparkMax;
 import edu.wpi.first.wpilibj.simulation.AnalogGyroSim;
@@ -53,7 +54,9 @@ public class DriveTrain extends SubsystemBase {
 
     public SimpleMotorFeedforward feedforward;
     public PIDController leftController;
-    public PIDController righController;
+    public PIDController rightController;
+    // public SparkMaxPIDController rightController;
+    // public SparkMaxPIDController leftController;
 
     public NetworkTableEntry xEntry = NetworkTableInstance.getDefault().getTable("troubleshooting").getEntry("X");
     public NetworkTableEntry yEntry = NetworkTableInstance.getDefault().getTable("troubleshooting").getEntry("Y");
@@ -116,8 +119,15 @@ public class DriveTrain extends SubsystemBase {
         odometry = new DifferentialDriveOdometry(getHeading(), new Pose2d(0, 0, getHeading()) );
 
         feedforward = new SimpleMotorFeedforward(0.1476, 2.8719, 0.26283);
-        righController = new PIDController(3.3559, 0.0, 0.0);
+        // leftController = fl.getPIDController();
+        // rightController = fr.getPIDController();
         leftController = new PIDController(3.3559, 0.0, 0.0);
+        rightController = new PIDController(3.3559, 0.0, 0.0);
+
+        // leftController.setP(3.3559);
+        // rightController.setP(3.3559);
+        
+        
 
         pose = new Pose2d();
 
@@ -241,7 +251,9 @@ public class DriveTrain extends SubsystemBase {
         // fr.set(-rightVolts);
 
         fl.setVoltage(leftVolts);
+        hl.setVoltage(leftVolts);
         fr.setVoltage(rightVolts);
+        hr.setVoltage(rightVolts);
     }
 
     

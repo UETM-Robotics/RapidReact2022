@@ -15,8 +15,10 @@ import edu.wpi.first.math.trajectory.Trajectory;
 import edu.wpi.first.math.trajectory.TrajectoryUtil;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Filesystem;
+import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.XboxController;
+import edu.wpi.first.wpilibj.simulation.FlywheelSim;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -24,6 +26,7 @@ import edu.wpi.first.wpilibj2.command.RamseteCommand;
 import frc.robot.DirectionalityDiagram.KinematicDriveSchematic;
 import frc.robot.DirectionalityDiagram.TraversalDriveSchematic;
 import frc.robot.subsystems.DriveTrain;
+import frc.robot.subsystems.FlyWheel;
 
 /**
  * The VM is configured to automatically run this class, and to call the functions corresponding to
@@ -39,15 +42,10 @@ public class Robot extends TimedRobot {
 
   private XboxController ctrl = new XboxController(0);
 
-  //private KinematicDriveSchematic auto;
-  private RamseteCommand autoA;
-  private RamseteCommand autoB;
+  private TraversalDriveSchematic auto;
   private RamseteController controller;
 
-  private String trajectoryAPath = "paths/Test.wpilib.json";
-  private String trajectoryBPath = "paths/Tpt2.wpilib.json";
-  private Trajectory trajectoryA;
-  private Trajectory trajectoryB;
+  private FlyWheel flywheel = new FlyWheel();
 
   /**
    * This function is run when the robot is first started up and should be used for any
@@ -109,18 +107,6 @@ public class Robot extends TimedRobot {
       m_autonomousCommand.schedule();
     }
 
-    try{
-      Path trajAPath = Filesystem.getDeployDirectory().toPath().resolve(trajectoryAPath);
-      Path trajBPath = Filesystem.getDeployDirectory().toPath().resolve(trajectoryBPath);
-      trajectoryA = TrajectoryUtil.fromPathweaverJson(trajAPath);
-      trajectoryB = TrajectoryUtil.fromPathweaverJson(trajBPath);
-    } catch(IOException ex) {
-      trajectoryA = null;
-      trajectoryB = null;
-      DriverStation.reportError("Unable to open trajectory: " + trajectoryAPath, ex.getStackTrace());
-      DriverStation.reportError("Unable to open trajectory: " + trajectoryBPath, ex.getStackTrace());
-    }
-
     dTrain.resetEncoder();
     dTrain.resetGyro();
     dTrain.resetOdometry();
@@ -128,24 +114,18 @@ public class Robot extends TimedRobot {
 
     dTrain.setBrake();
 
-    //auto = new TraversalDriveSchematic("paths/Test.wpilib.json", dTrain::getPose, controller, dTrain.kinematics, dTrain::getSpeeds, dTrain::setOutput, false);
+    auto = new TraversalDriveSchematic("paths/Test.wpilib.json", dTrain::getPose, controller, dTrain.kinematics, dTrain::getSpeeds, dTrain.leftController, dTrain.rightController, dTrain::setOutput);
   
-    autoA = new RamseteCommand(trajectoryA, dTrain::getPose, controller, dTrain.kinematics, dTrain::outputMPS, dTrain);
-    autoB = new RamseteCommand(trajectoryB, dTrain::getPose, controller, dTrain.kinematics, dTrain::outputMPS, dTrain);
+    //autoA = new RamseteCommand(trajectoryA, dTrain::getPose, controller, dTrain.kinematics, dTrain::outputMPS, dTrain);
+    //autoB = new RamseteCommand(trajectoryB, dTrain::getPose, controller, dTrain.kinematics, dTrain::outputMPS, dTrain);
     //auto = new RamseteCommand(trajectory, dTrain::getPose, controller, dTrain.feedforward, dTrain.kinematics, dTrain::getSpeeds, dTrain.leftController, dTrain.righController, dTrain::setOutput, dTrain);
-    autoA.schedule();
+    auto.schedule();
   }
 
   /** This function is called periodically during autonomous. */
   @Override
   public void autonomousPeriodic() {
-    if(autoA.isFinished()) {
-      autoB.schedule();
-      SmartDashboard.putString("is Finished", "true");
-    }
-
-    if(autoB.isFinished()) {
-      dTrain.setBrake();
+    if(auto.isFinished()) {
       dTrain.driveTank(0, 0);
     }
   }
@@ -180,12 +160,20 @@ public class Robot extends TimedRobot {
     dTrain.driveTank(-(ctrl.getRawAxis(1) - ctrl.getRawAxis(4)), -( ctrl.getRawAxis(1) + ctrl.getRawAxis(4)));
     SmartDashboard.putNumber("degrees", dTrain.getHeading().getRadians());
 
+    flywheel.Set(0.1);
+
+    SmartDashboard.putNumber("percent", -flywheel.get());
+    SmartDashboard.putNumber("voltage", RobotController.getBatteryVoltage());
+
+    //SmartDashboard.putNumber("temperature", );
+    SmartDashboard.putNumber("temperature", flywheel.getTemp());
+
     // dTrain.driveTank(1, 1);
 
     // SmartDashboard.putNumber("left velocity mps", dTrain.getSpeeds().leftMetersPerSecond);
     // SmartDashboard.putNumber("right velocity mps", dTrain.getSpeeds().rightMetersPerSecond);
   }
-
+  
   @Override
   public void testInit() {
     // Cancels all running commands at the start of test mode.
@@ -200,9 +188,9 @@ public class Robot extends TimedRobot {
 
   @Override
   public void testPeriodic() {
-    dTrain.driveTank(-0.1, -0.1);
+    // //dTrain.driveTank(-0.1, -0.1);
+    
 
-    SmartDashboard.putNumber("left position", dTrain.getLeftPosition());
-    SmartDashboard.putNumber("right position", dTrain.getRightPosition());
+
   }
 }
