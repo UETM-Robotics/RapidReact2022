@@ -5,28 +5,19 @@
 package frc.robot;
 
 
-import java.io.IOException;
-import java.nio.file.Path;
 
-import com.fasterxml.jackson.databind.ser.std.RawSerializer;
-
-import edu.wpi.first.math.controller.RamseteController;
-import edu.wpi.first.math.trajectory.Trajectory;
-import edu.wpi.first.math.trajectory.TrajectoryUtil;
-import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.Filesystem;
-import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.TimedRobot;
-import edu.wpi.first.wpilibj.XboxController;
-import edu.wpi.first.wpilibj.simulation.FlywheelSim;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
-import edu.wpi.first.wpilibj2.command.RamseteCommand;
-import frc.robot.DirectionalityDiagram.KinematicDriveSchematic;
-import frc.robot.DirectionalityDiagram.TraversalDriveSchematic;
+import frc.robot.Autonomous.Framework.AutoModeBase;
+import frc.robot.Autonomous.Framework.AutoModeExecuter;
+import frc.robot.Autonomous.Modes.BasicMode;
+import frc.robot.Utilities.Controllers;
+import frc.robot.Utilities.ThreadRateControl;
+import frc.robot.Utilities.Loops.Looper;
+import frc.robot.Utilities.Loops.RobotStateEstimator;
 import frc.robot.subsystems.DriveTrain;
-import frc.robot.subsystems.FlyWheel;
 
 /**
  * The VM is configured to automatically run this class, and to call the functions corresponding to
@@ -38,14 +29,17 @@ public class Robot extends TimedRobot {
   private Command m_autonomousCommand;
 
   private RobotContainer m_robotContainer;
+  
+  private Controllers robotControllers;
+
+  private Looper mLooper;
+  
   private DriveTrain dTrain;
+  private RobotStateEstimator robotStateEstimator;
 
-  private XboxController ctrl = new XboxController(0);
+  private AutoModeExecuter autoModeExecuter;
 
-  private TraversalDriveSchematic auto;
-  private RamseteController controller;
-
-  private FlyWheel flywheel = new FlyWheel();
+  private ThreadRateControl threadRateControl = new ThreadRateControl();
 
   /**
    * This function is run when the robot is first started up and should be used for any
@@ -58,19 +52,17 @@ public class Robot extends TimedRobot {
     // autonomous chooser on the dashboard.
     m_robotContainer = new RobotContainer();
 
+    robotControllers = Controllers.getInstance();
+
+    mLooper = new Looper();
+
     dTrain = DriveTrain.getInstance();
-    
-    controller = new RamseteController();
 
-    dTrain.resetEncoder();
-    dTrain.resetGyro();
-    dTrain.resetOdometry();
-    dTrain.resetPose();
+    dTrain.init();
+    dTrain.registerEnabledLoops(mLooper);
 
-    dTrain.xEntry.setNumber(0);
-    dTrain.yEntry.setNumber(0);
-    dTrain.theta.setNumber(0);
-
+    robotStateEstimator = RobotStateEstimator.getInstance();
+    mLooper.register(robotStateEstimator);
     
   }
 
@@ -92,10 +84,20 @@ public class Robot extends TimedRobot {
 
   /** This function is called once each time the robot enters Disabled mode. */
   @Override
-  public void disabledInit() {}
+  public void disabledInit() {
+    
+    exitAuto();
 
-  @Override
-  public void disabledPeriodic() {}
+    mLooper.stop();
+
+    threadRateControl.start(true);
+
+    while(isDisabled()) {
+      dTrain.setBrakeMode(false);
+      threadRateControl.doRateControl(100);
+    }
+    
+  }
 
   /** This autonomous runs the autonomous command selected by your {@link RobotContainer} class. */
   @Override
@@ -107,27 +109,39 @@ public class Robot extends TimedRobot {
       m_autonomousCommand.schedule();
     }
 
-    dTrain.resetEncoder();
-    dTrain.resetGyro();
-    dTrain.resetOdometry();
-    dTrain.resetPose();
 
-    dTrain.setBrake();
+    mLooper.start(true);
+		dTrain.setBrakeMode(true);
+    dTrain.subsystemHome();
+		autoModeExecuter = new AutoModeExecuter();
 
-    auto = new TraversalDriveSchematic("paths/Test.wpilib.json", dTrain::getPose, controller, dTrain.kinematics, dTrain::getSpeeds, dTrain.leftController, dTrain.rightController, dTrain::setOutput);
-  
-    //autoA = new RamseteCommand(trajectoryA, dTrain::getPose, controller, dTrain.kinematics, dTrain::outputMPS, dTrain);
-    //autoB = new RamseteCommand(trajectoryB, dTrain::getPose, controller, dTrain.kinematics, dTrain::outputMPS, dTrain);
-    //auto = new RamseteCommand(trajectory, dTrain::getPose, controller, dTrain.feedforward, dTrain.kinematics, dTrain::getSpeeds, dTrain.leftController, dTrain.righController, dTrain::setOutput, dTrain);
-    auto.schedule();
+		AutoModeBase autoMode = new BasicMode();
+
+
+		if (autoMode != null)
+			autoModeExecuter.setAutoMode(autoMode);
+		else
+			return;
+
+		autoModeExecuter.start();
+		threadRateControl.start(true);
+
+		while (isAutonomous() && isEnabled()) {
+      
+      threadRateControl.doRateControl(100);
+    }
+
   }
 
-  /** This function is called periodically during autonomous. */
   @Override
   public void autonomousPeriodic() {
-    if(auto.isFinished()) {
-      dTrain.driveTank(0, 0);
-    }
+    SmartDashboard.putNumber("gyro", dTrain.getGyroAngle().getDegrees());
+    // dTrain.setBruh();
+    // SmartDashboard.putNumber("left position", dTrain.leftFront.getEncoder().getPosition());
+    // SmartDashboard.putNumber("right position", dTrain.rightFront.getEncoder().getPosition());
+
+    // SmartDashboard.putNumber("left speed", dTrain.leftFront.getEncoder().getVelocity());
+    // SmartDashboard.putNumber("right speed", dTrain.rightFront.getEncoder().getVelocity());
   }
 
   @Override
@@ -141,46 +155,13 @@ public class Robot extends TimedRobot {
     }
     
     CommandScheduler.getInstance().cancelAll();
-
-    // dTrain.resetEncoder();
-    // dTrain.resetGyro();
-    // dTrain.resetOdometry();
-    // dTrain.resetPose();
-
-    // dTrain.xEntry.setNumber(0);
-    // dTrain.yEntry.setNumber(0);
-    // dTrain.theta.setNumber(0);
-
-    dTrain.setCoast();
-  }
-
-  /** This function is called periodically during operator control. */
-  @Override
-  public void teleopPeriodic() {
-    dTrain.driveTank(-(ctrl.getRawAxis(1) - ctrl.getRawAxis(4)), -( ctrl.getRawAxis(1) + ctrl.getRawAxis(4)));
-    SmartDashboard.putNumber("degrees", dTrain.getHeading().getRadians());
-
-    flywheel.Set(0.1);
-
-    SmartDashboard.putNumber("percent", -flywheel.get());
-    SmartDashboard.putNumber("voltage", RobotController.getBatteryVoltage());
-
-    //SmartDashboard.putNumber("temperature", );
-    SmartDashboard.putNumber("temperature", flywheel.getTemp());
-
-    // dTrain.driveTank(1, 1);
-
-    // SmartDashboard.putNumber("left velocity mps", dTrain.getSpeeds().leftMetersPerSecond);
-    // SmartDashboard.putNumber("right velocity mps", dTrain.getSpeeds().rightMetersPerSecond);
   }
   
   @Override
   public void testInit() {
     // Cancels all running commands at the start of test mode.
     CommandScheduler.getInstance().cancelAll();
-    //auto.cancel();
 
-    dTrain.resetEncoder();
   }
 
   /** This function is called periodically during test mode. */
@@ -188,9 +169,19 @@ public class Robot extends TimedRobot {
 
   @Override
   public void testPeriodic() {
-    // //dTrain.driveTank(-0.1, -0.1);
-    
-
 
   }
+
+
+
+  private void exitAuto() {
+		try {
+			if (autoModeExecuter != null)
+				autoModeExecuter.stop();
+
+
+			autoModeExecuter = null;
+		} catch (Throwable t) {
+		}
+	}
 }
