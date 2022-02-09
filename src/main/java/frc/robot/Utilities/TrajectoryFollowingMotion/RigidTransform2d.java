@@ -3,6 +3,9 @@ package frc.robot.Utilities.TrajectoryFollowingMotion;
 
 import static frc.robot.Utilities.TrajectoryFollowingMotion.Util.epsilonEquals;
 
+import frc.robot.Utilities.Geometry.Translation2d;
+import frc.robot.Utilities.Geometry.Twist2d;
+
 /**
  * Represents a 2d pose (rigid transform) containing translational and rotational elements.
  * 

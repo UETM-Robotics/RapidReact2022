@@ -8,6 +8,10 @@ import frc.robot.Utilities.Constants;
  * Contains basic functions that are used often.
  */
 public class Util {
+
+
+    public static final double kEpsilon = 1e-12;
+
     /** Prevent this class from being instantiated. */
     private Util() {
     }
@@ -36,6 +40,10 @@ public class Util {
 
     public static boolean epsilonEquals(double a, double b, double epsilon) {
         return (a - epsilon <= b) && (a + epsilon >= b);
+    }
+
+    public static boolean epsilonEquals(double a, double b) {
+        return epsilonEquals(a, b, kEpsilon);
     }
 
     public static boolean allCloseTo(List<Double> list, double value, double epsilon) {

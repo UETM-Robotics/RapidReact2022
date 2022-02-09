@@ -1,6 +1,7 @@
 package frc.robot.Utilities.TrajectoryFollowingMotion;
 
 import frc.robot.Utilities.Constants;
+import frc.robot.Utilities.Geometry.Twist2d;
 
 /**
  * Provides forward and inverse kinematics equations for the robot modeling the wheelbase as a differential drive (with

@@ -2,7 +2,6 @@ package frc.robot.subsystems;
 
 import java.util.concurrent.locks.ReentrantLock;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
 import com.revrobotics.REVLibError;
 import com.revrobotics.CANSparkMax.ControlType;
 import com.revrobotics.CANSparkMax.IdleMode;
@@ -17,6 +16,7 @@ import frc.robot.Utilities.DriveMotorValues;
 import frc.robot.Utilities.Drivers.NavX;
 import frc.robot.Utilities.Drivers.SparkHelper;
 import frc.robot.Utilities.Drivers.SparkMaxU;
+import frc.robot.Utilities.Geometry.Twist2d;
 import frc.robot.Utilities.Loops.Loop;
 import frc.robot.Utilities.Loops.Looper;
 import frc.robot.Utilities.TrajectoryFollowingMotion.Kinematics;
@@ -25,7 +25,6 @@ import frc.robot.Utilities.TrajectoryFollowingMotion.PathFollower;
 import frc.robot.Utilities.TrajectoryFollowingMotion.PathFollowerRobotState;
 import frc.robot.Utilities.TrajectoryFollowingMotion.RigidTransform2d;
 import frc.robot.Utilities.TrajectoryFollowingMotion.Rotation2d;
-import frc.robot.Utilities.TrajectoryFollowingMotion.Twist2d;
 import frc.robot.Utilities.TrajectoryFollowingMotion.Util;
 import frc.robot.Utilities.TrajectoryFollowingMotion.Lookahead;
 
@@ -109,6 +108,8 @@ public class DriveTrain extends SubsystemBase implements CustomSubsystem{
 						break;
 					case VELOCITY:
 						break;
+					case AUTO_AIM:
+						break;
 					case TURN_TO_HEADING:
 						//updateTurnToHeading(timestamp);
 						break;
@@ -131,6 +132,53 @@ public class DriveTrain extends SubsystemBase implements CustomSubsystem{
         }
     };
 
+	@Override
+    public void init() {
+        rightFront.setInverted(true);
+        rightHind.setInverted(true);
+
+        leftFront.setInverted(false);
+        leftHind.setInverted(false);
+
+		leftFront.getEncoder().setVelocityConversionFactor(1);
+		rightFront.getEncoder().setVelocityConversionFactor(1);
+
+		leftFront.getEncoder().setPositionConversionFactor(2);
+		rightFront.getEncoder().setPositionConversionFactor(2);
+
+		leftFront.setIdleMode(IdleMode.kCoast);
+		rightFront.setIdleMode(IdleMode.kCoast);
+
+		leftHind.setIdleMode(IdleMode.kCoast);
+		rightHind.setIdleMode(IdleMode.kCoast);
+
+		// leftFront.setOpenLoopRampRate(0.45);
+		// leftHind.setOpenLoopRampRate(0.45);
+
+		// rightFront.setOpenLoopRampRate(0.45);
+		// rightHind.setOpenLoopRampRate(0.45);
+
+        boolean setSucceeded;
+		int retryCounter = 0;
+
+		do {
+			setSucceeded = true;
+
+            setSucceeded &= leftFront.getEncoder().setMeasurementPeriod(10) == REVLibError.kOk;
+
+            setSucceeded &= rightFront.getEncoder().setMeasurementPeriod(10) == REVLibError.kOk;
+
+		} while(!setSucceeded && retryCounter++ < Constants.kSparkMaxRetryCount);
+
+        setSucceeded &= SparkHelper.setPIDGains(leftFront, 0, Constants.kDriveHighGearVelocityKp, Constants.kDriveHighGearVelocityKi, Constants.kDriveHighGearVelocityKd, Constants.kDriveHighGearVelocityKf, Constants.kDriveHighGearVelocityRampRate, Constants.kDriveHighGearVelocityIZone);
+        setSucceeded &= SparkHelper.setPIDGains(leftFront, 1, Constants.kDriveHighGearVelocityKp, Constants.kDriveHighGearVelocityKi, Constants.kDriveHighGearVelocityKd, Constants.kDriveHighGearVelocityKf, Constants.kDriveHighGearVelocityRampRate, Constants.kDriveHighGearVelocityIZone);
+        setSucceeded &= SparkHelper.setPIDGains(rightFront, 0, Constants.kDriveHighGearVelocityKp, Constants.kDriveHighGearVelocityKi, Constants.kDriveHighGearVelocityKd, Constants.kDriveHighGearVelocityKf, Constants.kDriveHighGearVelocityRampRate, Constants.kDriveHighGearVelocityIZone);
+        setSucceeded &= SparkHelper.setPIDGains(rightFront, 1, Constants.kDriveHighGearVelocityKp, Constants.kDriveHighGearVelocityKi, Constants.kDriveHighGearVelocityKd, Constants.kDriveHighGearVelocityKf, Constants.kDriveHighGearVelocityRampRate, Constants.kDriveHighGearVelocityIZone);
+
+        leftFront.selectProfileSlot(0, 0);
+        rightFront.selectProfileSlot(0, 0);
+    }
+
     @Override
     public void subsystemHome() {
 		mNavXBoard.zeroYaw();
@@ -139,6 +187,11 @@ public class DriveTrain extends SubsystemBase implements CustomSubsystem{
 
 		leftFront.getEncoder().setPosition(0);
 		rightFront.getEncoder().setPosition(0);
+	}
+
+	@Override
+	public void registerEnabledLoops(Looper in) {
+		in.register(mLoop);
 	}
 
     public void setControlMode(DriveControlState controlMode) {
@@ -151,6 +204,10 @@ public class DriveTrain extends SubsystemBase implements CustomSubsystem{
                 
 			}
 		}
+	}
+
+	public DriveControlState getControlMode() {
+		return mControlMode;
 	}
 
     public synchronized void setDriveOpenLoop(DriveMotorValues d) {
@@ -260,6 +317,11 @@ public class DriveTrain extends SubsystemBase implements CustomSubsystem{
 		rightFront.set(0.05);
 	}
 
+	public void setDrive(double l, double r) {
+		leftFront.set(l);
+		rightFront.set(r);
+	}
+
     public double getLeftVelocityInchesPerSec() { 
 		return ( leftFront.getEncoder().getVelocity() * Math.PI * 6) / 60;
 		//rpmToInchesPerSecond(Util.convertNativeUnitsToRPM(leftFront.getEncoder().getVelocity())); 
@@ -316,52 +378,6 @@ public class DriveTrain extends SubsystemBase implements CustomSubsystem{
 				return true;
 			}
 		}
-	}
-
-    @Override
-    public void init() {
-        rightFront.setInverted(true);
-        rightHind.setInverted(true);
-
-        leftFront.setInverted(false);
-        leftHind.setInverted(false);
-
-		leftFront.getEncoder().setVelocityConversionFactor(1);
-		rightFront.getEncoder().setVelocityConversionFactor(1);
-
-		leftFront.getEncoder().setPositionConversionFactor(1);
-		rightFront.getEncoder().setPositionConversionFactor(1);
-
-		leftFront.setIdleMode(IdleMode.kCoast);
-		rightFront.setIdleMode(IdleMode.kCoast);
-
-		leftHind.setIdleMode(IdleMode.kCoast);
-		rightHind.setIdleMode(IdleMode.kCoast);
-
-        boolean setSucceeded;
-		int retryCounter = 0;
-
-		do {
-			setSucceeded = true;
-
-            setSucceeded &= leftFront.getEncoder().setMeasurementPeriod(10) == REVLibError.kOk;
-
-            setSucceeded &= rightFront.getEncoder().setMeasurementPeriod(10) == REVLibError.kOk;
-
-		} while(!setSucceeded && retryCounter++ < Constants.kSparkMaxRetryCount);
-
-        setSucceeded &= SparkHelper.setPIDGains(leftFront, 0, Constants.kDriveHighGearVelocityKp, Constants.kDriveHighGearVelocityKi, Constants.kDriveHighGearVelocityKd, Constants.kDriveHighGearVelocityKf, Constants.kDriveHighGearVelocityRampRate, Constants.kDriveHighGearVelocityIZone);
-        setSucceeded &= SparkHelper.setPIDGains(leftFront, 1, Constants.kDriveHighGearVelocityKp, Constants.kDriveHighGearVelocityKi, Constants.kDriveHighGearVelocityKd, Constants.kDriveHighGearVelocityKf, Constants.kDriveHighGearVelocityRampRate, Constants.kDriveHighGearVelocityIZone);
-        setSucceeded &= SparkHelper.setPIDGains(rightFront, 0, Constants.kDriveHighGearVelocityKp, Constants.kDriveHighGearVelocityKi, Constants.kDriveHighGearVelocityKd, Constants.kDriveHighGearVelocityKf, Constants.kDriveHighGearVelocityRampRate, Constants.kDriveHighGearVelocityIZone);
-        setSucceeded &= SparkHelper.setPIDGains(rightFront, 1, Constants.kDriveHighGearVelocityKp, Constants.kDriveHighGearVelocityKi, Constants.kDriveHighGearVelocityKd, Constants.kDriveHighGearVelocityKf, Constants.kDriveHighGearVelocityRampRate, Constants.kDriveHighGearVelocityIZone);
-
-        leftFront.selectProfileSlot(0, 0);
-        rightFront.selectProfileSlot(0, 0);
-    }
-
-    @Override
-	public void registerEnabledLoops(Looper in) {
-		in.register(mLoop);
 	}
 	
 	public void reportSpeeds() {

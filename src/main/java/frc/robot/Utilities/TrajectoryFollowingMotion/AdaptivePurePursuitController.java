@@ -1,5 +1,8 @@
 package frc.robot.Utilities.TrajectoryFollowingMotion;
 
+import frc.robot.Utilities.Geometry.Translation2d;
+import frc.robot.Utilities.Geometry.Twist2d;
+
 /**
  * Implements an adaptive pure pursuit controller. See:
  * https://www.ri.cmu.edu/pub_files/pub1/kelly_alonzo_1994_4/kelly_alonzo_1994_4.pdf

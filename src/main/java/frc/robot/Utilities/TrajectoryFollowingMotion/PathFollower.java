@@ -1,5 +1,6 @@
 package frc.robot.Utilities.TrajectoryFollowingMotion;
 
+import frc.robot.Utilities.Geometry.Twist2d;
 import frc.robot.Utilities.TrajectoryFollowingMotion.MotionProfileGoal.CompletionBehavior;
 
 /**

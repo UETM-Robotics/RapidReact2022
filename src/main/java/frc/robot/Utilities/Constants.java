@@ -2,7 +2,7 @@ package frc.robot.Utilities;
 
 public class Constants {
     // Wheels
-	public static final double kDriveWheelDiameterInches = 4.0;	//Practice bot calibrated 4.875
+	public static final double kDriveWheelDiameterInches = 6.0;	//Practice bot calibrated 4.875
 	//public static final double kDriveWheelDiameterInches = 5;	//Comp bot measured val
 	//public static final double kDriveWheelDiameterInches = PathAdapter.getAdaptedWheelDiameter();
 	public static final double kTrackWidthInches = 25.25;
@@ -52,6 +52,7 @@ public class Constants {
 	public static final double kCameraPitchAngleDegrees = 29.56; // Measured on 4/26
 	public static final double kCameraYawAngleDegrees = 0.0;
 	public static final double kCameraDeadband = 0.0;
+    public static final double kCameraLensHeightToTargetHeightDelta = 0; //TODO: CALC HEIGHT DIFFERENCE
 
 	// Target parameters
 	// Source of current values: https://firstfrc.blob.core.windows.net/frc2017/Manual/2017FRCGameSeasonManual.pdf
@@ -91,4 +92,23 @@ public class Constants {
 	public static final int kDriveHighGearVelocityIZone = 0;
 	public static final double kDriveHighGearVelocityRampRate = 0.1;
 	public static final double kDriveHighGearMaxSetpoint = 12.0 * 12.0; // 12 fps
+
+	//PID gains for shooter velocity loop
+	//Units: setpoint, error, and output are in rpm
+	public static final double kShooterVelocityKp = 0.00222;
+	public static final double kShooterVelocityKi = 0.0;
+	public static final double kShooterVelocityKd = 0.00444;
+	public static final double kShooterVelocityKf = 0.00026;
+	public static final double kShooterVelocityRampRate = 0.2;
+	public static final int kShooterMaxAccel = 5200;
+	public static final double kBeltTransporterVelocity = 0.75;
+
+	//PID gains for intake velocity loop
+	//Units: setpoint, error, and output are in rpm
+	public static final double kBeltVelocityKp = 0.0;
+	public static final double kBeltVelocityKi = 0.0;
+	public static final double kBeltVelocityKd = 0.0;
+	public static final double kBeltVelocityKf = 0.0;
+	public static final double kBeltVelocityRampRate = 0.2;
+	public static final int kBeltMaxAccel = 0;
 }

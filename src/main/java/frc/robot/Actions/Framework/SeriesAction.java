@@ -2,6 +2,7 @@ package frc.robot.Actions.Framework;
 
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -13,13 +14,12 @@ public class SeriesAction implements Action {
     private final ArrayList<Action> mRemainingActions;
 
     public SeriesAction(List<Action> actions) {
-        mRemainingActions = new ArrayList<>(actions.size());
-
-        for (Action action : actions) {
-            mRemainingActions.add(action);
-        }
-
+        mRemainingActions = new ArrayList<>(actions);
         mCurAction = null;
+    }
+
+    public SeriesAction(Action... actions) {
+        this(Arrays.asList(actions));
     }
 
     @Override
@@ -39,16 +39,39 @@ public class SeriesAction implements Action {
             }
 
             mCurAction = mRemainingActions.remove(0);
+//            ConsoleReporter.report("Starting : " + mCurAction.getClass().getSimpleName(), MessageLevel.INFO);
             mCurAction.start();
         }
 
         mCurAction.update();
 
-
         if (mCurAction.isFinished()) {
+//            ConsoleReporter.report("Finishing: " + mCurAction.getClass().getSimpleName(), MessageLevel.INFO);
             mCurAction.done();
             mCurAction = null;
         }
+    }
+
+    public void purgeActions() {
+        if (mCurAction == null) {
+            if (mRemainingActions.isEmpty()) {
+                return;
+            }
+        }
+        if (mCurAction != null) {
+            mCurAction.done();
+        }
+        for (Action a:
+             mRemainingActions) {
+            if (a != null) {
+                a.start();
+                a.update();
+                a.isFinished();
+                a.done();
+            }
+        }
+        mCurAction = null;
+        mRemainingActions.clear();
     }
 
     @Override

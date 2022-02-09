@@ -22,8 +22,9 @@ public final class Constants {
         public static final int frontRightPort = 3;
         public static final int hindRightPort = 4;
 
-        public static final int mportDom = 5;
-        public static final int mportSub = 6;
+        public static final int shooterPort = 6;
+        public static final int beltTransportPort = 5;
+        public static final int hoodPort = 7;
     }
 
     public static final class TrajectoryConstants {
@@ -36,6 +37,21 @@ public final class Constants {
         public static final boolean useVelocityPID = false;
 
         public static final double robotMaxVelocityMPS = 4.2;
+
+    }
+
+    public static final class DriverConstants {
+        
+        public static final int DRIVE_X_AXIS = 4;
+        public static final int DRIVE_Y_AXIS = 1;
+
+        public static final int DRIVE_HOLD_BRAKE = 6;
+
+        public static final double kJoystickDeadband = 0.027;
+        public static final double kWheelDeadband = 0.05;
+
+        public static final double joyXMod = 1.6;
+        public static final double joyYMod = 1.6;
 
     }
 }

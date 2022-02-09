@@ -2,6 +2,8 @@ package frc.robot.Utilities.TrajectoryFollowingMotion;
 
 import java.text.DecimalFormat;
 
+import frc.robot.Utilities.Geometry.Translation2d;
+
 import static frc.robot.Utilities.TrajectoryFollowingMotion.Util.epsilonEquals;
 
 /**

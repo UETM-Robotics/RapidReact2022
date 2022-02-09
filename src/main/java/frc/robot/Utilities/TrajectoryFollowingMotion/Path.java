@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.List;
 
 import frc.robot.Utilities.Constants;
+import frc.robot.Utilities.Geometry.Translation2d;
 
 /**
  * Class representing the robot's autonomous path.

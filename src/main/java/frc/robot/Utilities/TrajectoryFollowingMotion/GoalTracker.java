@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import frc.robot.Utilities.Constants;
+import frc.robot.Utilities.Geometry.Translation2d;
 
 /**
  * This is used in the event that multiple goals are detected to judge all goals based on timestamp, stability, and

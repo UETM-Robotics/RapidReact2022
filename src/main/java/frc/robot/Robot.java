@@ -5,19 +5,26 @@
 package frc.robot;
 
 
+import com.revrobotics.CANSparkMax;
+import com.revrobotics.CANSparkMax.ControlType;
+import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 
+import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
-import frc.robot.Autonomous.Framework.AutoModeBase;
 import frc.robot.Autonomous.Framework.AutoModeExecuter;
-import frc.robot.Autonomous.Modes.BasicMode;
 import frc.robot.Utilities.Controllers;
+import frc.robot.Utilities.DriveControlState;
+import frc.robot.Utilities.DriveMotorValues;
+import frc.robot.Utilities.ShooterMotorValues;
 import frc.robot.Utilities.ThreadRateControl;
 import frc.robot.Utilities.Loops.Looper;
 import frc.robot.Utilities.Loops.RobotStateEstimator;
 import frc.robot.subsystems.DriveTrain;
+import frc.robot.subsystems.Shooter;
 
 /**
  * The VM is configured to automatically run this class, and to call the functions corresponding to
@@ -25,6 +32,7 @@ import frc.robot.subsystems.DriveTrain;
  * the package after creating this project, you must also update the build.gradle file in the
  * project.
  */
+
 public class Robot extends TimedRobot {
   private Command m_autonomousCommand;
 
@@ -41,12 +49,23 @@ public class Robot extends TimedRobot {
 
   private ThreadRateControl threadRateControl = new ThreadRateControl();
 
+  private HIDController hidController;
+
+  private Shooter shooter;
+
+  private Controllers controllers;
+
+  PIDController pid = new PIDController(0.01, 0.0, 0.0007);
+
+
   /**
    * This function is run when the robot is first started up and should be used for any
    * initialization code.
    */
   @Override
   public void robotInit() {
+
+    controllers = Controllers.getInstance();
     
     // Instantiate our RobotContainer.  This will perform all our button bindings, and put our
     // autonomous chooser on the dashboard.
@@ -57,13 +76,23 @@ public class Robot extends TimedRobot {
     mLooper = new Looper();
 
     dTrain = DriveTrain.getInstance();
+    //shooter = Shooter.getInstance();
 
+    
     dTrain.init();
     dTrain.registerEnabledLoops(mLooper);
 
+
+    shooter.init();
+    shooter.registerEnabledLoops(mLooper);
+    
+
+    hidController = HIDController.getInstance();
+
     robotStateEstimator = RobotStateEstimator.getInstance();
     mLooper.register(robotStateEstimator);
-    
+
+    //flywheel = new Shooter();
   }
 
   /**
@@ -87,17 +116,19 @@ public class Robot extends TimedRobot {
   public void disabledInit() {
     
     exitAuto();
+    hidController.stop();
 
-    mLooper.stop();
+    // mLooper.stop();
 
-    threadRateControl.start(true);
+    // threadRateControl.start(true);
 
-    while(isDisabled()) {
-      dTrain.setBrakeMode(false);
-      threadRateControl.doRateControl(100);
-    }
+    // while(isDisabled()) {
+    //   dTrain.setBrakeMode(false);
+    //   threadRateControl.doRateControl(100);
+    // }
     
   }
+
 
   /** This autonomous runs the autonomous command selected by your {@link RobotContainer} class. */
   @Override
@@ -109,39 +140,37 @@ public class Robot extends TimedRobot {
       m_autonomousCommand.schedule();
     }
 
+    // mLooper.start(true);
+		// dTrain.setBrakeMode(true);
+    // dTrain.subsystemHome();
+		// autoModeExecuter = new AutoModeExecuter();
 
-    mLooper.start(true);
-		dTrain.setBrakeMode(true);
-    dTrain.subsystemHome();
-		autoModeExecuter = new AutoModeExecuter();
-
-		AutoModeBase autoMode = new BasicMode();
+		// AutoModeBase autoMode = new BasicMode();
 
 
-		if (autoMode != null)
-			autoModeExecuter.setAutoMode(autoMode);
-		else
-			return;
+		// if (autoMode != null)
+		// 	autoModeExecuter.setAutoMode(autoMode);
+		// else
+		// 	return;
 
-		autoModeExecuter.start();
-		threadRateControl.start(true);
+		// autoModeExecuter.start();
+		// threadRateControl.start(true);
 
-		while (isAutonomous() && isEnabled()) {
+		// while (isAutonomous() && isEnabled()) {
       
-      threadRateControl.doRateControl(100);
-    }
-
+    //   threadRateControl.doRateControl(100);
+    // }
   }
 
   @Override
   public void autonomousPeriodic() {
-    SmartDashboard.putNumber("gyro", dTrain.getGyroAngle().getDegrees());
-    // dTrain.setBruh();
-    // SmartDashboard.putNumber("left position", dTrain.leftFront.getEncoder().getPosition());
-    // SmartDashboard.putNumber("right position", dTrain.rightFront.getEncoder().getPosition());
 
-    // SmartDashboard.putNumber("left speed", dTrain.leftFront.getEncoder().getVelocity());
-    // SmartDashboard.putNumber("right speed", dTrain.rightFront.getEncoder().getVelocity());
+    // double power = 0.0;
+
+    // if(objectDetected.getNumber(0).intValue() == 1 && !pid.atSetpoint()) {
+    //   power = pid.calculate(tx.getDouble(0) + 4, 0);
+    // }
+
   }
 
   @Override
@@ -153,18 +182,46 @@ public class Robot extends TimedRobot {
     if (m_autonomousCommand != null) {
       m_autonomousCommand.cancel();
     }
+
+    exitAuto();
+    hidController.stop();
+
+    mLooper.start(false);
+    dTrain.setDriveOpenLoop(DriveMotorValues.NEUTRAL);
+    dTrain.setDriveVelocity(DriveMotorValues.NEUTRAL);
+    dTrain.setBrakeMode(false);
+    dTrain.setControlMode(DriveControlState.OPEN_LOOP);
+
+    hidController.start();
+
     
     CommandScheduler.getInstance().cancelAll();
   }
+
   
   @Override
   public void testInit() {
     // Cancels all running commands at the start of test mode.
     CommandScheduler.getInstance().cancelAll();
-
+    //SmartDashboard.putNumber("Shooter Power Input", 0);
   }
 
   /** This function is called periodically during test mode. */
+
+
+  @Override
+  public void teleopPeriodic() {
+    // shooter.setBeltTransporter(true);
+
+    // shooter.setShooterSmartVelocity(new ShooterMotorValues(5200), true);
+    // dTrain.setDriveOpenLoop(DriveMotorValues.NEUTRAL);
+
+    // //controllers.getShooterMotor().getPIDController().setReference(1000, ControlType.kSmartVelocity);
+
+    // SmartDashboard.putNumber("Shooter Velocity Graph", shooter.getShooterVelocity());
+    // SmartDashboard.putNumber("Shooter Velocity", shooter.getShooterVelocity());
+  }
+
 
 
   @Override

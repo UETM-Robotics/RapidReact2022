@@ -6,5 +6,6 @@ public enum DriveControlState {
 	VELOCITY,
 	PATH_FOLLOWING,
 	TURN_TO_HEADING,
+	AUTO_AIM,
 	TEST
 }

@@ -31,6 +31,14 @@ public class SparkMaxU extends CANSparkMax{
         super.set(outputValue);
     }
 
+    public double getVelocity() {
+        return this.getEncoder().getVelocity();
+    }
+
+    public double getPosition() {
+        return this.getEncoder().getPosition();
+    }
+
 
     public REVLibError configClosedloopRamp(double secondsFromNeutralToFull, int timeoutMs) {
         return configClosedloopRamp(secondsFromNeutralToFull, currentSlectedSlot, timeoutMs);

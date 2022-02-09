@@ -1,6 +1,10 @@
-package frc.robot.Utilities.TrajectoryFollowingMotion;
+package frc.robot.Utilities.Geometry;
 
 import java.text.DecimalFormat;
+
+import frc.robot.Utilities.TrajectoryFollowingMotion.Interpolable;
+import frc.robot.Utilities.TrajectoryFollowingMotion.Rotation2d;
+import frc.robot.Utilities.TrajectoryFollowingMotion.Util;
 
 /**
  * A translation in a 2d coordinate frame. Translations are simply shifts in an (x, y) plane.
@@ -88,6 +92,10 @@ public class Translation2d implements Interpolable<Translation2d> {
 
     public Rotation2d direction() {
         return new Rotation2d(x_, y_, true);
+    }
+
+    public boolean epsilonEquals(final Translation2d other, double epsilon) {
+        return Util.epsilonEquals(x(), other.x(), epsilon) && Util.epsilonEquals(y(), other.y(), epsilon);
     }
 
     /**
