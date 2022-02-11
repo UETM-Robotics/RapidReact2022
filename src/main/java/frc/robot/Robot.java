@@ -6,6 +6,7 @@ package frc.robot;
 
 
 
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -14,6 +15,8 @@ import frc.robot.Autonomous.Framework.AutoModeBase;
 import frc.robot.Autonomous.Framework.AutoModeExecuter;
 import frc.robot.Autonomous.Modes.BasicMode;
 import frc.robot.Utilities.Controllers;
+import frc.robot.Utilities.DriveControlState;
+import frc.robot.Utilities.DriveMotorValues;
 import frc.robot.Utilities.ThreadRateControl;
 import frc.robot.Utilities.Loops.Looper;
 import frc.robot.Utilities.Loops.RobotStateEstimator;
@@ -38,6 +41,7 @@ public class Robot extends TimedRobot {
   private RobotStateEstimator robotStateEstimator;
 
   private AutoModeExecuter autoModeExecuter;
+  private HIDController mHidController;
 
   private ThreadRateControl threadRateControl = new ThreadRateControl();
 
@@ -60,6 +64,8 @@ public class Robot extends TimedRobot {
 
     dTrain.init();
     dTrain.registerEnabledLoops(mLooper);
+
+    mHidController = HIDController.getInstance();
 
     robotStateEstimator = RobotStateEstimator.getInstance();
     mLooper.register(robotStateEstimator);
@@ -153,6 +159,27 @@ public class Robot extends TimedRobot {
     if (m_autonomousCommand != null) {
       m_autonomousCommand.cancel();
     }
+
+    try {
+      System.out.println("Beginning TeleOP");
+
+			exitAuto();
+
+      dTrain.setControlMode(DriveControlState.OPEN_LOOP);
+
+			mLooper.start(true);
+
+			dTrain.setDriveVelocity(DriveMotorValues.NEUTRAL, true);
+			dTrain.setDriveOpenLoop(DriveMotorValues.NEUTRAL);
+			dTrain.setBrakeMode(false);
+			mHidController.start();
+
+      dTrain.setControlMode(DriveControlState.OPEN_LOOP);
+
+		} catch (Throwable t) {
+      DriverStation.reportError("Fatal Error Initializing Teleop", true);
+			throw t;
+		}
     
     CommandScheduler.getInstance().cancelAll();
   }

@@ -118,6 +118,8 @@ public class DriveTrain extends SubsystemBase implements CustomSubsystem{
 							//mCSVWriter.add(mPathFollower.getDebug());
 						}
 						break;
+					case AUTO_AIMING:
+						break;
 					default:
 						//ConsoleReporter.report("Unexpected drive control state: " + mControlMode);
 						break;
@@ -151,6 +153,10 @@ public class DriveTrain extends SubsystemBase implements CustomSubsystem{
                 
 			}
 		}
+	}
+
+	public DriveControlState getDriveControlState() {
+		return mControlMode;
 	}
 
     public synchronized void setDriveOpenLoop(DriveMotorValues d) {

@@ -27,6 +27,10 @@ public class Controllers {
         rightDriveFront = CANSpeedControllerBuilder.createFastMasterSparkMax(Constants.PortConstants.frontRightPort, 0);
         rightDriveHind = CANSpeedControllerBuilder.createPermanentSlaveSparkMax(Constants.PortConstants.hindRightPort, rightDriveFront);
 
+        shooterMotor = CANSpeedControllerBuilder.createFastMasterSparkMax(Constants.PortConstants.shooterMotorPort, 0);
+
+        beltTransporterMotor = CANSpeedControllerBuilder.createFastMasterSparkMax(Constants.PortConstants.beltTransporterMotorPort, 0);
+
         try {
             navX = new NavX(SPI.Port.kMXP);
         } catch (Exception ex) {
@@ -39,6 +43,9 @@ public class Controllers {
 
     private SparkMaxU rightDriveFront;
     private SparkMaxU rightDriveHind;
+
+    private SparkMaxU shooterMotor;
+    private SparkMaxU beltTransporterMotor;
 
     private NavX navX;
 
@@ -56,6 +63,14 @@ public class Controllers {
 
     public SparkMaxU getRightHindDrive() {
         return rightDriveHind;
+    }
+
+    public SparkMaxU getShooterMotor() {
+        return shooterMotor;
+    }
+
+    public SparkMaxU getBeltTransporterMotor() {
+        return beltTransporterMotor;
     }
 
     public NavX getNavX() {

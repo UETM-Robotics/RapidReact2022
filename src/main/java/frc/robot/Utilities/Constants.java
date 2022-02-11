@@ -72,6 +72,8 @@ public class Constants {
 	public static final double kSensorUnitsPerRotation = 4096.0;
 	public static final double k100msPerMinute = 600.0;
 	public static final double kLooperDt = 0.005;
+	public static final double kJoystickJogThreshold = 0.4;
+	public static final int kControllerThreadPriority = 9;
 
 	public static final int kTimeoutMsFast = 10;
 	public static int kSparkMaxRetryCount = 3;
@@ -91,4 +93,12 @@ public class Constants {
 	public static final int kDriveHighGearVelocityIZone = 0;
 	public static final double kDriveHighGearVelocityRampRate = 0.1;
 	public static final double kDriveHighGearMaxSetpoint = 12.0 * 12.0; // 12 fps
+
+	public static final double kShooterVelocityKp = 0.0;
+	public static final double kShooterVelocityKi = 0.0;
+	public static final double kShooterVelocityKd = 0.0;
+	public static final double kShooterVelocityKf = 0.0;
+	public static final int kShooterVelocityIZone = 0;
+	public static final double kShooterVelocityClosedLoopRampRate = 0.2;
+	public static final double kShooterMaxVelocity = 10600.0;
 }

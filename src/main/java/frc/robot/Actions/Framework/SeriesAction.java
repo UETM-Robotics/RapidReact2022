@@ -2,6 +2,7 @@ package frc.robot.Actions.Framework;
 
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -20,6 +21,10 @@ public class SeriesAction implements Action {
         }
 
         mCurAction = null;
+    }
+
+    public SeriesAction(Action... actions) {
+        this(Arrays.asList(actions));
     }
 
     @Override
@@ -49,6 +54,28 @@ public class SeriesAction implements Action {
             mCurAction.done();
             mCurAction = null;
         }
+    }
+
+    public void purgeActions() {
+        if (mCurAction == null) {
+            if (mRemainingActions.isEmpty()) {
+                return;
+            }
+        }
+        if (mCurAction != null) {
+            mCurAction.done();
+        }
+        for (Action a:
+             mRemainingActions) {
+            if (a != null) {
+                a.start();
+                a.update();
+                a.isFinished();
+                a.done();
+            }
+        }
+        mCurAction = null;
+        mRemainingActions.clear();
     }
 
     @Override
