@@ -115,6 +115,7 @@ public class HIDController {
 				mTurn = 0;
 				return true;
 			}
+			
 			mThrottle = 0;
 			mTurn = 0;
 			return false;

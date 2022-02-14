@@ -41,6 +41,7 @@ public class Robot extends TimedRobot {
   
   private DriveTrain dTrain;
   private Intake intake;
+  private Shooter shooter;
 
   private RobotStateEstimator robotStateEstimator;
 
@@ -66,6 +67,7 @@ public class Robot extends TimedRobot {
 
     dTrain = DriveTrain.getInstance();
     intake = Intake.getInstance();
+    shooter = Shooter.getInstance();
 
     dTrain.init();
     dTrain.registerEnabledLoops(mLooper);
@@ -73,12 +75,14 @@ public class Robot extends TimedRobot {
     intake.init();
     intake.registerEnabledLoops(mLooper);
     
+    shooter.init();
+    shooter.registerEnabledLoops(mLooper);
 
     mHidController = HIDController.getInstance();
 
     robotStateEstimator = RobotStateEstimator.getInstance();
     mLooper.register(robotStateEstimator);
-    
+
   }
 
   /**
@@ -198,11 +202,10 @@ public class Robot extends TimedRobot {
 
   /** This function is called periodically during test mode. */
 
-  Shooter shooter = Shooter.getInstance();
+  
 
   @Override
   public void testPeriodic() {
-    shooter.setChango();
   }
 
 
