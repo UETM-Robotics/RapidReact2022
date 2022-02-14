@@ -21,6 +21,8 @@ import frc.robot.Utilities.ThreadRateControl;
 import frc.robot.Utilities.Loops.Looper;
 import frc.robot.Utilities.Loops.RobotStateEstimator;
 import frc.robot.subsystems.DriveTrain;
+import frc.robot.subsystems.Intake;
+import frc.robot.subsystems.Shooter;
 
 /**
  * The VM is configured to automatically run this class, and to call the functions corresponding to
@@ -38,6 +40,8 @@ public class Robot extends TimedRobot {
   private Looper mLooper;
   
   private DriveTrain dTrain;
+  private Intake intake;
+
   private RobotStateEstimator robotStateEstimator;
 
   private AutoModeExecuter autoModeExecuter;
@@ -61,9 +65,14 @@ public class Robot extends TimedRobot {
     mLooper = new Looper();
 
     dTrain = DriveTrain.getInstance();
+    intake = Intake.getInstance();
 
     dTrain.init();
     dTrain.registerEnabledLoops(mLooper);
+
+    intake.init();
+    intake.registerEnabledLoops(mLooper);
+    
 
     mHidController = HIDController.getInstance();
 
@@ -96,12 +105,8 @@ public class Robot extends TimedRobot {
 
     mLooper.stop();
 
-    threadRateControl.start(true);
 
-    while(isDisabled()) {
-      dTrain.setBrakeMode(false);
-      threadRateControl.doRateControl(100);
-    }
+    mHidController.stop();
     
   }
 
@@ -155,7 +160,7 @@ public class Robot extends TimedRobot {
     // This makes sure that the autonomous stops running when
     // teleop starts running. If you want the autonomous to
     // continue until interrupted by another command, remove
-    // this line or comment it out.
+    // this line or comment it out.p
     if (m_autonomousCommand != null) {
       m_autonomousCommand.cancel();
     }
@@ -193,10 +198,11 @@ public class Robot extends TimedRobot {
 
   /** This function is called periodically during test mode. */
 
+  Shooter shooter = Shooter.getInstance();
 
   @Override
   public void testPeriodic() {
-
+    shooter.setChango();
   }
 
 

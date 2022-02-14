@@ -67,7 +67,7 @@ public class Constants {
 	public static final int kTimeoutMs = 20;
 	public static final int kActionTimeoutS = 2;
 	public static final int kTalonRetryCount = 3;
-	public static final double kJoystickDeadband = 0.08;
+	public static final double kJoystickDeadband = 0.03;
 	public static final double kWheelDeadband = 0.05;
 	public static final double kSensorUnitsPerRotation = 4096.0;
 	public static final double k100msPerMinute = 600.0;

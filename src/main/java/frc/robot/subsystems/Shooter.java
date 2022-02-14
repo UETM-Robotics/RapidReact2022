@@ -44,9 +44,13 @@ public class Shooter extends Subsystem implements CustomSubsystem {
     @Override
     public void init() {
         
-        shooterMotor.setIdleMode(IdleMode.kCoast);
-        shooterMotor.setOpenLoopRampRate(0.2);
-        shooterMotor.setSmartCurrentLimit(60);
+        // shooterMotor.setIdleMode(IdleMode.kCoast);
+        // shooterMotor.setOpenLoopRampRate(0.2);
+        // shooterMotor.setSmartCurrentLimit(60);
+
+        // beltTransporterMotor.setIdleMode(IdleMode.kCoast);
+        // beltTransporterMotor.setOpenLoopRampRate(0.5);
+        // beltTransporterMotor.setSmartCurrentLimit(40);
 
         int retryCounter = 0;
         boolean setSucceeded;
@@ -56,7 +60,6 @@ public class Shooter extends Subsystem implements CustomSubsystem {
             setSucceeded = true;
 
             setSucceeded &= SparkHelper.setPIDGains(shooterMotor, 0, Constants.kShooterVelocityKp, Constants.kShooterVelocityKi, Constants.kShooterVelocityKd, Constants.kShooterVelocityKf, Constants.kShooterVelocityClosedLoopRampRate, Constants.kShooterVelocityIZone);
-
             
 
         } while(retryCounter++ < 3 && !setSucceeded);
@@ -64,6 +67,11 @@ public class Shooter extends Subsystem implements CustomSubsystem {
         if(retryCounter == 3) {
             DriverStation.reportError("Error Initializing Shooter", false);
         }
+    }
+
+    public void setChango() {
+        //shooterMotor.set(0.3);
+        beltTransporterMotor.set(1);
     }
 
     @Override

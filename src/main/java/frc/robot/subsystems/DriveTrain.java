@@ -344,6 +344,20 @@ public class DriveTrain extends SubsystemBase implements CustomSubsystem{
 		leftHind.setIdleMode(IdleMode.kCoast);
 		rightHind.setIdleMode(IdleMode.kCoast);
 
+
+		leftFront.setSmartCurrentLimit(45);
+		rightFront.setSmartCurrentLimit(45);
+
+		leftHind.setSmartCurrentLimit(45);
+		rightHind.setSmartCurrentLimit(45);
+
+
+		leftFront.setOpenLoopRampRate(0.15);
+		rightFront.setOpenLoopRampRate(0.15);
+
+		leftHind.setOpenLoopRampRate(0.15);
+		rightHind.setOpenLoopRampRate(0.15);
+
         boolean setSucceeded;
 		int retryCounter = 0;
 

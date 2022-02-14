@@ -31,6 +31,8 @@ public class Controllers {
 
         beltTransporterMotor = CANSpeedControllerBuilder.createFastMasterSparkMax(Constants.PortConstants.beltTransporterMotorPort, 0);
 
+        intakeMotor = CANSpeedControllerBuilder.createFastMasterSparkMax(Constants.PortConstants.intakeMotorPort, 0);
+
         try {
             navX = new NavX(SPI.Port.kMXP);
         } catch (Exception ex) {
@@ -46,6 +48,8 @@ public class Controllers {
 
     private SparkMaxU shooterMotor;
     private SparkMaxU beltTransporterMotor;
+
+    private SparkMaxU intakeMotor;
 
     private NavX navX;
 
@@ -71,6 +75,10 @@ public class Controllers {
 
     public SparkMaxU getBeltTransporterMotor() {
         return beltTransporterMotor;
+    }
+
+    public SparkMaxU getIntakeMotor() {
+        return intakeMotor;
     }
 
     public NavX getNavX() {

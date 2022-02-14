@@ -5,8 +5,10 @@ import java.util.function.BooleanSupplier;
 
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Notifier;
+import frc.robot.Actions.Autonomy.AutomatedAction;
 import frc.robot.Actions.Framework.CrashTrackingRunnable;
 import frc.robot.Actions.Framework.TeleopActionRunner;
+import frc.robot.Actions.OperatedActions.SetIntakeAction;
 import frc.robot.Utilities.Drivers.rcinput.ControllerU;
 import frc.robot.Utilities.TrajectoryFollowingMotion.DriveSignal;
 import frc.robot.subsystems.DriveTrain;
@@ -98,16 +100,36 @@ public class HIDController {
 
     private void registerControls() {
 
+		//DriveTrain drive Controls
         mControlFunctions.add(() -> {
 			if (dTrain.getDriveControlState() == DriveControlState.OPEN_LOOP) {
+				
 				mThrottle = -driverController.getNormalizedAxis(1, Constants.kJoystickDeadband);
-				mTurn = driverController.getNormalizedAxis(2, Constants.kJoystickDeadband);
+				mTurn = driverController.getNormalizedAxis(4, Constants.kJoystickDeadband);
 				dTrain.setBrakeMode(driverController.getRawButton(5));
 				mDriveSignalOutput.set(Math.max(Math.min(mThrottle + mTurn, 1), -1), Math.max(Math.min(mThrottle - mTurn, 1), -1));
 				dTrain.setDriveOpenLoop( DriveMotorValues.fromDriveSignal(mDriveSignalOutput) );
 				return true;
+			} else if(dTrain.getDriveControlState() == DriveControlState.AUTO_AIMING) {
+				mThrottle = 0;
+				mTurn = 0;
+				return true;
 			}
+			mThrottle = 0;
+			mTurn = 0;
 			return false;
+		});
+
+		//Intake On Button
+		registerButtonPressControl(driverController, 1, (j, b) -> {
+			TeleopActionRunner.runAction(AutomatedAction.fromAction(
+					new SetIntakeAction(false, () -> j.getRawButton(b)), 300));
+		});
+
+		//Intake Out Button
+		registerButtonPressControl(driverController, 3, (j, b) -> {
+			TeleopActionRunner.runAction(AutomatedAction.fromAction(
+					new SetIntakeAction(true, () -> j.getRawButton(b)), 300));
 		});
 
     }
