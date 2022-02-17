@@ -12,6 +12,8 @@ import frc.robot.Actions.OperatedActions.SetIntakeAction;
 import frc.robot.Utilities.Drivers.rcinput.ControllerU;
 import frc.robot.Utilities.TrajectoryFollowingMotion.DriveSignal;
 import frc.robot.subsystems.DriveTrain;
+import frc.robot.subsystems.Shooter;
+import frc.robot.subsystems.Shooter.ShooterControlMode;
 import frc.robot.Utilities.Constants;
 import frc.robot.Utilities.ControlsConsumerU;
 import frc.robot.Utilities.DriveControlState;
@@ -88,10 +90,20 @@ public class HIDController {
 		}
 	}
 
-	private void registerButtonPressControl(ControllerU joystick, int button, ControlsConsumerU controlFunction) {
+	private void registerButtonPressControl( ControllerU joystick, int button, ControlsConsumerU controlFunction ) {
 		mControlFunctions.add(() -> {
 			if (joystick.getRisingEdgeButton(button)) {
 				controlFunction.accept(joystick, button);
+				return true;
+			}
+			return false;
+		});
+	}
+
+	private void registerTriggerPressControl( ControllerU joystick, int trigger, ControlsConsumerU controlFunction) {
+		mControlFunctions.add( () -> {
+			if( joystick.getTriggerPressed(trigger, Constants.kControllerTriggerThreshold) ) {
+				controlFunction.accept( joystick, trigger );
 				return true;
 			}
 			return false;
@@ -131,6 +143,17 @@ public class HIDController {
 		registerButtonPressControl(driverController, 3, (j, b) -> {
 			TeleopActionRunner.runAction(AutomatedAction.fromAction(
 					new SetIntakeAction(true, () -> j.getRawButton(b)), 300));
+		});
+
+		//Shooter On Trigger
+		registerTriggerPressControl( driverController, 3, (j, t) -> {
+			Shooter.getInstance().setShooterControlMode(ShooterControlMode.SMART_VELOCITY);
+			Shooter.getInstance().setShooterVelocity(5400);
+		});
+
+		//Shooter Off Trigger
+		registerButtonPressControl(driverController, 2, (j, b) -> {
+			Shooter.getInstance().setShooterControlMode(ShooterControlMode.DISABLED);
 		});
 
     }
