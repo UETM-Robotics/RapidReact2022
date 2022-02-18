@@ -148,13 +148,23 @@ public class HIDController {
 		//Shooter On Trigger
 		registerTriggerPressControl( driverController, 3, (j, t) -> {
 			Shooter.getInstance().setShooterControlMode(ShooterControlMode.SMART_VELOCITY);
-			Shooter.getInstance().setShooterVelocity(5400);
+			Shooter.getInstance().setShooterVelocity(3000);
 		});
 
 		//Shooter Off Trigger
 		registerButtonPressControl(driverController, 2, (j, b) -> {
 			Shooter.getInstance().setShooterControlMode(ShooterControlMode.DISABLED);
 		});
+
+		// registerButtonPressControl( driverController, 6, (j, b) -> {
+		// 	Shooter.getInstance().setShooterControlMode(ShooterControlMode.SMART_VELOCITY);
+		// 	Shooter.getInstance().setShooterVelocity(3000);
+		// } );
+
+		// //Shooter Off Trigger
+		// registerButtonPressControl(driverController, 2, (j, b) -> {
+		// 	Shooter.getInstance().setShooterControlMode(ShooterControlMode.DISABLED);
+		// });
 
     }
 

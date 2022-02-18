@@ -2,6 +2,9 @@ package frc.robot.Utilities;
 
 import com.revrobotics.SparkMaxPIDController.AccelStrategy;
 
+import frc.robot.Utilities.Geometry.Pose2d;
+import frc.robot.Utilities.Geometry.Rotation2d;
+
 public class Constants {
     // Wheels
 	public static final double kDriveWheelDiameterInches = 4.0;	//Practice bot calibrated 4.875
@@ -97,13 +100,19 @@ public class Constants {
 	public static final double kDriveHighGearVelocityRampRate = 0.1;
 	public static final double kDriveHighGearMaxSetpoint = 12.0 * 12.0; // 12 fps
 
-	public static final double kShooterVelocityKp = 0.00032;
+	public static final double kShooterVelocityKp = 0.00029;
 	public static final double kShooterVelocityKi = 0.0;
-	public static final double kShooterVelocityKd = 0.00064;
-	public static final double kShooterVelocityKf = 0.00022;
+	public static final double kShooterVelocityKd = 0.00114;
+	public static final double kShooterVelocityKf = 0.00025;
 	public static final int kShooterVelocityIZone = 0;
 	public static final double kShooterVelocityClosedLoopRampRate = 0.4;
-	public static final double kShooterMaxVelocity = 5300.0;
-	public static final double kShooterMaxAccel = 7500.0;
+	public static final double kShooterMaxVelocity = 4000.0;
+	public static final double kShooterMaxAccel = 7000.0;
 	public static final AccelStrategy kShooterAccelStrategy = AccelStrategy.kTrapezoidal;
+
+	//TODO: MEASURE THESE ALL OUT
+	public static final Pose2d fieldToOuterTarget = new Pose2d(0, 67, Rotation2d.identity());
+
+	public static final Pose2d kTurretToCamera = new Pose2d(9.737, -0.25, Rotation2d.identity()); //camera w.r.t. turret
+	public static final Pose2d kVehicleToTurret = new Pose2d(0.42, -1.75, Rotation2d.identity()); //turret w.r.t. robot
 }

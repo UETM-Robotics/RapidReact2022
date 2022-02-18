@@ -22,8 +22,8 @@ public final class Constants {
         public static final int frontRightPort = 3;
         public static final int hindRightPort = 4;
 
-        public static final int shooterMotorPort = 6;
-        public static final int beltTransporterMotorPort = 5;
+        public static final int shooterMotorPort = 5;
+        public static final int beltTransporterMotorPort = 6;
 
         public static final int intakeMotorPort = 7;
     }

@@ -4,7 +4,7 @@ import com.kauailabs.navx.AHRSProtocol.AHRSUpdateBase;
 import com.kauailabs.navx.frc.AHRS;
 import com.kauailabs.navx.frc.ITimestampedDataSubscriber;
 import edu.wpi.first.wpilibj.SPI;
-import frc.robot.Utilities.TrajectoryFollowingMotion.Rotation2d;
+import frc.robot.Utilities.Geometry.Rotation2d;
 
 /**
  * Driver for a NavX board. Basically a wrapper for the {@link AHRS} class

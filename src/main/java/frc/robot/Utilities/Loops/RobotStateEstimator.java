@@ -1,10 +1,10 @@
 package frc.robot.Utilities.Loops;
 
 import frc.robot.subsystems.DriveTrain;
+import frc.robot.Utilities.Geometry.Rotation2d;
+import frc.robot.Utilities.Geometry.Twist2d;
 import frc.robot.Utilities.TrajectoryFollowingMotion.Kinematics;
 import frc.robot.Utilities.TrajectoryFollowingMotion.PathFollowerRobotState;
-import frc.robot.Utilities.TrajectoryFollowingMotion.Rotation2d;
-import frc.robot.Utilities.TrajectoryFollowingMotion.Twist2d;
 
 /**
  * Periodically estimates the state of the robot using the robot's distance traveled (compares two waypoints), gyroscope

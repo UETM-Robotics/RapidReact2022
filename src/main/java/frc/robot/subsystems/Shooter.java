@@ -4,6 +4,7 @@ import java.net.http.HttpClient.Redirect;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.revrobotics.REVLibError;
+import com.revrobotics.CANSparkMax.ControlType;
 import com.revrobotics.CANSparkMax.IdleMode;
 
 import edu.wpi.first.wpilibj.DriverStation;
@@ -12,9 +13,11 @@ import frc.robot.Utilities.CustomSubsystem;
 import frc.robot.Utilities.ElapsedTimer;
 import frc.robot.Utilities.Drivers.SparkHelper;
 import frc.robot.Utilities.Drivers.SparkMaxU;
+import frc.robot.Utilities.Geometry.Pose2d;
+import frc.robot.Utilities.Geometry.Rotation2d;
 import frc.robot.Utilities.Loops.Loop;
 import frc.robot.Utilities.Loops.Looper;
-
+import frc.robot.RobotState;
 import frc.robot.Utilities.Constants;
 
 public class Shooter extends Subsystem implements CustomSubsystem {
@@ -31,7 +34,7 @@ public class Shooter extends Subsystem implements CustomSubsystem {
     }
 
     private final SparkMaxU shooterMotor;
-    private final SparkMaxU beltTransporterMotor;
+    public final SparkMaxU beltTransporterMotor;
 
     private ShooterControlMode mShooterControlMode = ShooterControlMode.SMART_VELOCITY;
 
@@ -105,6 +108,19 @@ public class Shooter extends Subsystem implements CustomSubsystem {
 		mPeriodicIO.shooter_setpoint_rpm = shooterVelocity;
 	}
 
+    public void setShooterVelocityChango(double shooterVelocity) {
+        shooterMotor.set(ControlType.kVelocity, shooterVelocity, 0);
+        //shooterMotor.set(shooterVelocity);
+    }
+
+    public double getvel() {
+        return shooterMotor.getEncoder().getVelocity();
+    }
+
+    // public void setBeltTransporter(double vel) {
+    //     beltTransporterMotor.set(vel);
+    // }
+
     public synchronized void setShooterControlMode( ShooterControlMode controlMode ) {
 
         if (controlMode != mShooterControlMode) {
@@ -118,6 +134,15 @@ public class Shooter extends Subsystem implements CustomSubsystem {
 		}
 
     }
+
+    public Pose2d getLatestFieldToTurretPose() {
+		return RobotState.getInstance().getLatestFieldToVehicle().getValue().transformBy(getLatestVehicleToTurretPose());
+	}
+
+    public Pose2d getLatestVehicleToTurretPose() {
+		return new Pose2d(Constants.kVehicleToTurret.getTranslation(),
+							Rotation2d.fromDegrees(0));
+	}
 
 
     @Override
@@ -148,6 +173,7 @@ public class Shooter extends Subsystem implements CustomSubsystem {
             setSucceeded &= shooterMotor.getPIDController().setSmartMotionAccelStrategy(Constants.kShooterAccelStrategy, 0) == REVLibError.kOk;
             setSucceeded &= shooterMotor.getPIDController().setSmartMotionMaxVelocity(Constants.kShooterMaxVelocity, 0) == REVLibError.kOk;
 
+            
         } while(retryCounter++ < 3 && !setSucceeded);
 
         if(retryCounter == 3) {

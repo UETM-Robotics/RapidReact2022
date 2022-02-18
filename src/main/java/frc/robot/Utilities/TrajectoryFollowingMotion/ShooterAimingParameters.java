@@ -1,5 +1,7 @@
 package frc.robot.Utilities.TrajectoryFollowingMotion;
 
+import frc.robot.Utilities.Geometry.Rotation2d;
+
 /**
  * A container class to specify the shooter angle. It contains the desired range, the field_to_goal_angle
  */
