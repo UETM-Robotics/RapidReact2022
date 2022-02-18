@@ -1,6 +1,9 @@
 package frc.robot.Utilities.TrajectoryFollowingMotion;
 
 import frc.robot.Utilities.Constants;
+import frc.robot.Utilities.Geometry.Pose2d;
+import frc.robot.Utilities.Geometry.Rotation2d;
+import frc.robot.Utilities.Geometry.Twist2d;
 
 /**
  * Provides forward and inverse kinematics equations for the robot modeling the wheelbase as a differential drive (with
@@ -52,6 +55,11 @@ public class Kinematics {
     public static RigidTransform2d integrateForwardKinematics(RigidTransform2d current_pose,
             Twist2d forward_kinematics) {
         return current_pose.transformBy(RigidTransform2d.exp(forward_kinematics));
+    }
+
+    public static Pose2d integrateForwardKinematics(Pose2d current_pose,
+                                                    Twist2d forward_kinematics) {
+        return current_pose.transformBy(Pose2d.exp(forward_kinematics));
     }
 
     /**

@@ -2,6 +2,9 @@ package frc.robot.Utilities.TrajectoryFollowingMotion;
 
 import java.util.List;
 
+import frc.robot.Utilities.Geometry.Rotation2d;
+import frc.robot.Utilities.Geometry.Translation2d;
+
 /**
  * Class used to convert a list of Waypoints into a Path object consisting of arc and line PathSegments
  * 

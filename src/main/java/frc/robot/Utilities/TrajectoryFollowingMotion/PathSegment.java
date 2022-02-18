@@ -3,6 +3,8 @@ package frc.robot.Utilities.TrajectoryFollowingMotion;
 import java.util.Optional;
 
 import frc.robot.Utilities.Constants;
+import frc.robot.Utilities.Geometry.Rotation2d;
+import frc.robot.Utilities.Geometry.Translation2d;
 
 /**
  * Class representing a segment of the robot's autonomous path.

@@ -1,5 +1,7 @@
 package frc.robot.Utilities.TrajectoryFollowingMotion;
 
+import frc.robot.Utilities.Geometry.Rotation2d;
+
 /**
  * Class to deal with angle wrapping for following a heading profile. All states are assumed to be in units of degrees,
  * and wrap on the interval of [-180, 180].
