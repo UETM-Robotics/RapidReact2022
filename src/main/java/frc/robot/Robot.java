@@ -109,6 +109,8 @@ public class Robot extends TimedRobot {
 
     mLooper.stop();
 
+    //shooter.setBeltTransporter(0.0);
+    //shooter.setShooterVelocityChango(0.0);
 
     mHidController.stop();
     
@@ -206,6 +208,9 @@ public class Robot extends TimedRobot {
 
   @Override
   public void testPeriodic() {
+    shooter.setShooterVelocityChango(10000);
+    shooter.beltTransporterMotor.set(0.7);
+    SmartDashboard.putNumber("Shooter Velocity", shooter.getvel());
   }
 
 

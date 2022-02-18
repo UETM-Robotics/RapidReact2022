@@ -1,5 +1,7 @@
 package frc.robot.Autonomous.Paths;
 
+import frc.robot.Utilities.Geometry.Rotation2d;
+import frc.robot.Utilities.Geometry.Translation2d;
 import frc.robot.Utilities.TrajectoryFollowingMotion.*;
 import frc.robot.Utilities.TrajectoryFollowingMotion.PathBuilder.Waypoint;
 
