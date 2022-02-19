@@ -8,11 +8,15 @@ import edu.wpi.first.wpilibj.Notifier;
 import frc.robot.Actions.Autonomy.AutomatedAction;
 import frc.robot.Actions.Framework.CrashTrackingRunnable;
 import frc.robot.Actions.Framework.TeleopActionRunner;
+import frc.robot.Actions.OperatedActions.SetIndexerAction;
 import frc.robot.Actions.OperatedActions.SetIntakeAction;
 import frc.robot.Utilities.Drivers.rcinput.ControllerU;
 import frc.robot.Utilities.TrajectoryFollowingMotion.DriveSignal;
 import frc.robot.subsystems.DriveTrain;
+import frc.robot.subsystems.Indexer;
+import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.Shooter;
+import frc.robot.subsystems.Indexer.IndexerControlMode;
 import frc.robot.subsystems.Shooter.ShooterControlMode;
 import frc.robot.Utilities.Constants;
 import frc.robot.Utilities.ControlsConsumerU;
@@ -145,15 +149,33 @@ public class HIDController {
 					new SetIntakeAction(true, () -> j.getRawButton(b)), 300));
 		});
 
-		//Shooter On Trigger
-		registerTriggerPressControl( driverController, 3, (j, t) -> {
-			Shooter.getInstance().setShooterControlMode(ShooterControlMode.SMART_VELOCITY);
-			Shooter.getInstance().setShooterVelocity(3000);
+		// registerButtonPressControl(driverController, 6, (j, b) -> {
+		// 	Indexer.getInstance().setIndexerControlMode(IndexerControlMode.ENABLED);
+		// });
+
+		// registerButtonPressControl(driverController, 5, (j, b) -> {
+		// 	Indexer.getInstance().setIndexerControlMode(IndexerControlMode.DISABLED);
+		// });
+
+		// //Shooter On Trigger
+		// registerTriggerPressControl( driverController, 3, (j, t) -> {
+		// 	Shooter.getInstance().setShooterControlMode(ShooterControlMode.SMART_VELOCITY);
+		// 	Shooter.getInstance().setShooterVelocity(3000);
+		// });
+
+		// //Shooter Off Trigger
+		// registerButtonPressControl(driverController, 2, (j, b) -> {
+		// 	Shooter.getInstance().setShooterControlMode(ShooterControlMode.DISABLED);
+		// });
+
+		mControlFunctions.add(() -> {
+			Indexer.getInstance().setIndexerControlMode(IndexerControlMode.ENABLED);
+			return true;
 		});
 
-		//Shooter Off Trigger
-		registerButtonPressControl(driverController, 2, (j, b) -> {
-			Shooter.getInstance().setShooterControlMode(ShooterControlMode.DISABLED);
+		registerButtonPressControl(driverController, 6, (j, b) -> {
+			TeleopActionRunner.runAction( AutomatedAction.fromAction(
+					new SetIndexerAction(() -> j.getRawButton(b)), 300));
 		});
 
 		// registerButtonPressControl( driverController, 6, (j, b) -> {

@@ -21,6 +21,7 @@ import frc.robot.Utilities.ThreadRateControl;
 import frc.robot.Utilities.Loops.Looper;
 import frc.robot.Utilities.Loops.RobotStateEstimator;
 import frc.robot.subsystems.DriveTrain;
+import frc.robot.subsystems.Indexer;
 import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.Shooter;
 
@@ -42,6 +43,7 @@ public class Robot extends TimedRobot {
   private DriveTrain dTrain;
   private Intake intake;
   private Shooter shooter;
+  private Indexer indexer;
 
   private RobotStateEstimator robotStateEstimator;
 
@@ -68,6 +70,7 @@ public class Robot extends TimedRobot {
     dTrain = DriveTrain.getInstance();
     intake = Intake.getInstance();
     shooter = Shooter.getInstance();
+    indexer = Indexer.getInstance();
 
     dTrain.init();
     dTrain.registerEnabledLoops(mLooper);
@@ -77,6 +80,9 @@ public class Robot extends TimedRobot {
     
     shooter.init();
     shooter.registerEnabledLoops(mLooper);
+
+    indexer.init();
+    indexer.registerEnabledLoops(mLooper);
 
     mHidController = HIDController.getInstance();
 
@@ -108,9 +114,6 @@ public class Robot extends TimedRobot {
     exitAuto();
 
     mLooper.stop();
-
-    //shooter.setBeltTransporter(0.0);
-    //shooter.setShooterVelocityChango(0.0);
 
     mHidController.stop();
     
@@ -208,9 +211,7 @@ public class Robot extends TimedRobot {
 
   @Override
   public void testPeriodic() {
-    shooter.setShooterVelocityChango(10000);
-    shooter.beltTransporterMotor.set(0.7);
-    SmartDashboard.putNumber("Shooter Velocity", shooter.getvel());
+    //indexer.set();
   }
 
 

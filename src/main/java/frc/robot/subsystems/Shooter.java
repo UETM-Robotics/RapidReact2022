@@ -81,7 +81,12 @@ public class Shooter extends Subsystem implements CustomSubsystem {
                         shooterMotor.set( Math.min(Math.max(mPeriodicIO.shooter_setpoint_rpm, -1), 1));
                         break;
                     case SMART_VELOCITY:
-                        shooterMotor.set(mPeriodicIO.shooter_setpoint_rpm);
+                        try {
+                            shooterMotor.set(mPeriodicIO.shooter_setpoint_rpm);
+                        } catch( Exception e) {
+                            DriverStation.reportError("wtf", true);
+                        }
+                        
                         break;
                     case VELOCITY:
                         shooterMotor.set(mPeriodicIO.shooter_setpoint_rpm);
@@ -116,10 +121,6 @@ public class Shooter extends Subsystem implements CustomSubsystem {
     public double getvel() {
         return shooterMotor.getEncoder().getVelocity();
     }
-
-    // public void setBeltTransporter(double vel) {
-    //     beltTransporterMotor.set(vel);
-    // }
 
     public synchronized void setShooterControlMode( ShooterControlMode controlMode ) {
 
@@ -189,7 +190,7 @@ public class Shooter extends Subsystem implements CustomSubsystem {
 
     @Override
     public void registerEnabledLoops(Looper in) {
-        
+        in.register(mloop);
     }
 
     @Override
@@ -201,11 +202,11 @@ public class Shooter extends Subsystem implements CustomSubsystem {
     @SuppressWarnings("WeakerAccess")
 	public static class PeriodicIO {
 
-		public double shooter_velocity_rpm;
-		public double shooter_setpoint_rpm;
+		public double shooter_velocity_rpm = 0;
+		public double shooter_setpoint_rpm = 0;
 
 		// Outputs
-		public double shooter_loop_time;
+		public double shooter_loop_time = 0;
 	}
     
 

@@ -26,6 +26,9 @@ public final class Constants {
         public static final int beltTransporterMotorPort = 6;
 
         public static final int intakeMotorPort = 7;
+
+        public static final int indexerLeftPort = 9;
+        public static final int indexerRightPort = 8;
     }
 
     public static final class TrajectoryConstants {

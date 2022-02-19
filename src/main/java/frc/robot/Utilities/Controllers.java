@@ -33,6 +33,10 @@ public class Controllers {
 
         intakeMotor = CANSpeedControllerBuilder.createFastMasterSparkMax(Constants.PortConstants.intakeMotorPort, 0);
 
+        indexerLeft = CANSpeedControllerBuilder.createDefaultSparkMax(Constants.PortConstants.indexerLeftPort, 0);
+        indexerRight = CANSpeedControllerBuilder.createDefaultSparkMax(Constants.PortConstants.indexerRightPort, 0);
+
+
         try {
             navX = new NavX(SPI.Port.kMXP);
         } catch (Exception ex) {
@@ -50,6 +54,9 @@ public class Controllers {
     private SparkMaxU beltTransporterMotor;
 
     private SparkMaxU intakeMotor;
+
+    private SparkMaxU indexerLeft;
+    private SparkMaxU indexerRight;
 
     private NavX navX;
 
@@ -79,6 +86,14 @@ public class Controllers {
 
     public SparkMaxU getIntakeMotor() {
         return intakeMotor;
+    }
+
+    public SparkMaxU getIndexerLeftMotor() {
+        return indexerLeft;
+    }
+
+    public SparkMaxU getIndexerRightMotor() {
+        return indexerRight;
     }
 
     public NavX getNavX() {
