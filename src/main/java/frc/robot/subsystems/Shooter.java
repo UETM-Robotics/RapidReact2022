@@ -34,7 +34,7 @@ public class Shooter extends Subsystem implements CustomSubsystem {
     }
 
     private final SparkMaxU shooterMotor;
-    public final SparkMaxU beltTransporterMotor;
+    private final SparkMaxU hoodMotor;
 
     private ShooterControlMode mShooterControlMode = ShooterControlMode.SMART_VELOCITY;
 
@@ -46,8 +46,14 @@ public class Shooter extends Subsystem implements CustomSubsystem {
     private Shooter() {
 
         shooterMotor = controllers.getShooterMotor();
-        beltTransporterMotor = controllers.getBeltTransporterMotor();
+        hoodMotor = controllers.getHoodMotor();
 
+        mPeriodicIO = new PeriodicIO();
+
+    }
+    
+    public void hood(){
+        hoodMotor.set(0.5);
     }
 
 
@@ -81,15 +87,10 @@ public class Shooter extends Subsystem implements CustomSubsystem {
                         shooterMotor.set( Math.min(Math.max(mPeriodicIO.shooter_setpoint_rpm, -1), 1));
                         break;
                     case SMART_VELOCITY:
-                        try {
-                            shooterMotor.set(mPeriodicIO.shooter_setpoint_rpm);
-                        } catch( Exception e) {
-                            DriverStation.reportError("wtf", true);
-                        }
-                        
+                        shooterMotor.set(mPeriodicIO.shooter_setpoint_rpm, ControlType.kSmartVelocity);  
                         break;
                     case VELOCITY:
-                        shooterMotor.set(mPeriodicIO.shooter_setpoint_rpm);
+                        shooterMotor.set(mPeriodicIO.shooter_setpoint_rpm, ControlType.kVelocity);
                         break;
                     default:
                         shooterMotor.set(0);
@@ -153,9 +154,10 @@ public class Shooter extends Subsystem implements CustomSubsystem {
         shooterMotor.setOpenLoopRampRate(0.2);
         shooterMotor.setSmartCurrentLimit(70);
 
-        beltTransporterMotor.setIdleMode(IdleMode.kCoast);
-        beltTransporterMotor.setOpenLoopRampRate(0.5);
-        beltTransporterMotor.setSmartCurrentLimit(40);
+        hoodMotor.setIdleMode(IdleMode.kBrake);
+        hoodMotor.setOpenLoopRampRate(0.15);
+        hoodMotor.setSmartCurrentLimit(45);
+        
 
         int retryCounter = 0;
         boolean setSucceeded;
@@ -165,14 +167,16 @@ public class Shooter extends Subsystem implements CustomSubsystem {
             setSucceeded = true;
 
             setSucceeded &= shooterMotor.getEncoder().setMeasurementPeriod(10) == REVLibError.kOk;
-            setSucceeded &= beltTransporterMotor.getEncoder().setMeasurementPeriod(10) == REVLibError.kOk;
+            setSucceeded &= shooterMotor.getEncoder().setMeasurementPeriod(10) == REVLibError.kOk;
 
-
-            setSucceeded &= beltTransporterMotor.setOpenLoopRampRate(0.2) == REVLibError.kOk;
+            setSucceeded &= SparkHelper.setPIDGains(hoodMotor, 0, Constants.kHoodVelocityKp, Constants.kHoodVelocityKi, Constants.kHoodVelocityKd, Constants.kHoodVelocityKf, Constants.kHoodVelocityClosedLoopRampRate, Constants.kHoodVelocityIZone);
+            setSucceeded &= hoodMotor.getPIDController().setSmartMotionAccelStrategy(Constants.kHoodAccelStrategy, 0) == REVLibError.kOk;
+            setSucceeded &= hoodMotor.getPIDController().setSmartMotionMaxVelocity(Constants.kHoodMaxVelocity, 0) == REVLibError.kOk;
 
             setSucceeded &= SparkHelper.setPIDGains(shooterMotor, 0, Constants.kShooterVelocityKp, Constants.kShooterVelocityKi, Constants.kShooterVelocityKd, Constants.kShooterVelocityKf, Constants.kShooterVelocityClosedLoopRampRate, Constants.kShooterVelocityIZone);
             setSucceeded &= shooterMotor.getPIDController().setSmartMotionAccelStrategy(Constants.kShooterAccelStrategy, 0) == REVLibError.kOk;
             setSucceeded &= shooterMotor.getPIDController().setSmartMotionMaxVelocity(Constants.kShooterMaxVelocity, 0) == REVLibError.kOk;
+            setSucceeded &= shooterMotor.getPIDController().setSmartMotionMaxAccel(Constants.kShooterMaxAccel, 0) == REVLibError.kOk;
 
             
         } while(retryCounter++ < 3 && !setSucceeded);
@@ -214,6 +218,12 @@ public class Shooter extends Subsystem implements CustomSubsystem {
 		OPEN_LOOP,
 		VELOCITY,
         SMART_VELOCITY,
+		DISABLED;
+	}
+
+    public enum HoodControlMode {
+		OPEN_LOOP,
+		POSITION,
 		DISABLED;
 	}
 }

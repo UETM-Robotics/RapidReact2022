@@ -24,6 +24,8 @@ import frc.robot.subsystems.DriveTrain;
 import frc.robot.subsystems.Indexer;
 import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.Shooter;
+import frc.robot.subsystems.Indexer.IndexerControlMode;
+import frc.robot.subsystems.Shooter.ShooterControlMode;
 
 /**
  * The VM is configured to automatically run this class, and to call the functions corresponding to
@@ -189,6 +191,8 @@ public class Robot extends TimedRobot {
 			mHidController.start();
 
       dTrain.setControlMode(DriveControlState.OPEN_LOOP);
+      shooter.setShooterControlMode(ShooterControlMode.DISABLED);
+      indexer.setIndexerControlMode(IndexerControlMode.DISABLED);
 
 		} catch (Throwable t) {
       DriverStation.reportError("Fatal Error Initializing Teleop", true);
@@ -211,7 +215,6 @@ public class Robot extends TimedRobot {
 
   @Override
   public void testPeriodic() {
-    //indexer.set();
   }
 
 

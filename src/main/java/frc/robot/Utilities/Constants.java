@@ -72,7 +72,7 @@ public class Constants {
 	public static final int kTimeoutMs = 20;
 	public static final int kActionTimeoutS = 2;
 	public static final int kTalonRetryCount = 3;
-	public static final double kJoystickDeadband = 0.03;
+	public static final double kJoystickDeadband = 0.1;
 	public static final double kWheelDeadband = 0.05;
 	public static final double kSensorUnitsPerRotation = 4096.0;
 	public static final double k100msPerMinute = 600.0;
@@ -100,15 +100,25 @@ public class Constants {
 	public static final double kDriveHighGearVelocityRampRate = 0.1;
 	public static final double kDriveHighGearMaxSetpoint = 12.0 * 12.0; // 12 fps
 
-	public static final double kShooterVelocityKp = 0.00029;
+	public static final double kShooterVelocityKp = 0.0004;
 	public static final double kShooterVelocityKi = 0.0;
-	public static final double kShooterVelocityKd = 0.00114;
-	public static final double kShooterVelocityKf = 0.00025;
+	public static final double kShooterVelocityKd = 0.0008;
+	public static final double kShooterVelocityKf = 0.00021;
 	public static final int kShooterVelocityIZone = 0;
 	public static final double kShooterVelocityClosedLoopRampRate = 0.4;
-	public static final double kShooterMaxVelocity = 4000.0;
-	public static final double kShooterMaxAccel = 7000.0;
+	public static final double kShooterMaxVelocity = 4300.0;
+	public static final double kShooterMaxAccel = 4300.0;
 	public static final AccelStrategy kShooterAccelStrategy = AccelStrategy.kTrapezoidal;
+
+	public static final double kHoodVelocityKp = 0.0;
+	public static final double kHoodVelocityKi = 0.0;
+	public static final double kHoodVelocityKd = 0.0;
+	public static final double kHoodVelocityKf = 0.0;
+	public static final int kHoodVelocityIZone = 0;
+	public static final double kHoodVelocityClosedLoopRampRate = 0.2;
+	public static final double kHoodMaxVelocity = 0;
+	public static final AccelStrategy kHoodAccelStrategy = AccelStrategy.kTrapezoidal;
+
 
 	//TODO: MEASURE THESE ALL OUT
 	public static final Pose2d fieldToOuterTarget = new Pose2d(0, 67, Rotation2d.identity());

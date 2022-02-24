@@ -22,13 +22,15 @@ public final class Constants {
         public static final int frontRightPort = 3;
         public static final int hindRightPort = 4;
 
-        public static final int shooterMotorPort = 5;
+        public static final int shooterMotorPort = 10;
         public static final int beltTransporterMotorPort = 6;
 
         public static final int intakeMotorPort = 7;
 
-        public static final int indexerLeftPort = 9;
-        public static final int indexerRightPort = 8;
+        public static final int indexerLeftPort = 8;
+        public static final int indexerRightPort = 9;
+
+        public static final int hoodMotorPort = 5;
     }
 
     public static final class TrajectoryConstants {

@@ -10,10 +10,13 @@ public class SetIndexerAction implements Action {
 
     private final Supplier<Boolean> mButtonGetterMethod;
     private final Indexer indexer = Indexer.getInstance();
+    private final IndexerControlMode mControlMode;
 
-    public SetIndexerAction(Supplier<Boolean> buttonGetterMethod) {
+    public SetIndexerAction(boolean unjam, Supplier<Boolean> buttonGetterMethod) {
 
         mButtonGetterMethod = buttonGetterMethod;
+
+        mControlMode = unjam ? IndexerControlMode.UNJAM : IndexerControlMode.ENABLED;
 
     }
 
@@ -36,7 +39,7 @@ public class SetIndexerAction implements Action {
 
     @Override
     public void start() {
-        indexer.setIndexerControlMode(IndexerControlMode.ENABLED);
+        indexer.setIndexerControlMode(mControlMode);
     }
     
 }

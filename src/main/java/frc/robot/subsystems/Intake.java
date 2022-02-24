@@ -7,6 +7,7 @@ import com.revrobotics.CANSparkMax.IdleMode;
 import edu.wpi.first.wpilibj.DriverStation;
 import frc.robot.Utilities.Controllers;
 import frc.robot.Utilities.CustomSubsystem;
+import frc.robot.Utilities.ElapsedTimer;
 import frc.robot.Utilities.Drivers.SparkMaxU;
 import frc.robot.Utilities.Loops.Loop;
 import frc.robot.Utilities.Loops.Looper;
@@ -46,7 +47,7 @@ public class Intake extends Subsystem implements CustomSubsystem {
                         intakeMotor.set(0);
                         break;
                     case ENABLED:
-                        intakeMotor.set(0.45);
+                        intakeMotor.set(0.65);
                         break;
                     case REVERSE:
                         intakeMotor.set(-0.9);
@@ -56,7 +57,6 @@ public class Intake extends Subsystem implements CustomSubsystem {
                         DriverStation.reportError("Failed to set Intake Speed", false);
                         break;    
 				}
-
             }
         }
 
@@ -104,6 +104,10 @@ public class Intake extends Subsystem implements CustomSubsystem {
 
     public ControlMode getControlMode() {
         return mControlMode;
+    }
+
+    public void set() {
+        intakeMotor.set(0.45);
     }
 
 

@@ -5,17 +5,21 @@ import java.util.function.BooleanSupplier;
 
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Notifier;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Actions.Autonomy.AutomatedAction;
 import frc.robot.Actions.Framework.CrashTrackingRunnable;
 import frc.robot.Actions.Framework.TeleopActionRunner;
+import frc.robot.Actions.OperatedActions.SetBeltAction;
 import frc.robot.Actions.OperatedActions.SetIndexerAction;
 import frc.robot.Actions.OperatedActions.SetIntakeAction;
+import frc.robot.Actions.OperatedActions.SetShooterAction;
 import frc.robot.Utilities.Drivers.rcinput.ControllerU;
 import frc.robot.Utilities.TrajectoryFollowingMotion.DriveSignal;
 import frc.robot.subsystems.DriveTrain;
 import frc.robot.subsystems.Indexer;
 import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.Shooter;
+import frc.robot.subsystems.Indexer.BeltControlMode;
 import frc.robot.subsystems.Indexer.IndexerControlMode;
 import frc.robot.subsystems.Shooter.ShooterControlMode;
 import frc.robot.Utilities.Constants;
@@ -121,8 +125,9 @@ public class HIDController {
 			if (dTrain.getDriveControlState() == DriveControlState.OPEN_LOOP) {
 				
 				mThrottle = -driverController.getNormalizedAxis(1, Constants.kJoystickDeadband);
-				mTurn = driverController.getNormalizedAxis(4, Constants.kJoystickDeadband);
-				dTrain.setBrakeMode(driverController.getRawButton(5));
+				mTurn = driverController.getNormalizedAxis(4, Constants.kJoystickDeadband) * 0.3;
+				//dTrain.setBrakeMode(driverController.getRawButton(5));
+				//dTrain.setBrakeMode(driverController.getTriggerPressed(2, Constants.kControllerTriggerThreshold));
 				mDriveSignalOutput.set(Math.max(Math.min(mThrottle + mTurn, 1), -1), Math.max(Math.min(mThrottle - mTurn, 1), -1));
 				dTrain.setDriveOpenLoop( DriveMotorValues.fromDriveSignal(mDriveSignalOutput) );
 				return true;
@@ -137,56 +142,37 @@ public class HIDController {
 			return false;
 		});
 
-		//Intake On Button
-		registerButtonPressControl(driverController, 1, (j, b) -> {
-			TeleopActionRunner.runAction(AutomatedAction.fromAction(
-					new SetIntakeAction(false, () -> j.getRawButton(b)), 300));
-		});
-
 		//Intake Out Button
 		registerButtonPressControl(driverController, 3, (j, b) -> {
 			TeleopActionRunner.runAction(AutomatedAction.fromAction(
 					new SetIntakeAction(true, () -> j.getRawButton(b)), 300));
 		});
 
-		// registerButtonPressControl(driverController, 6, (j, b) -> {
-		// 	Indexer.getInstance().setIndexerControlMode(IndexerControlMode.ENABLED);
-		// });
-
-		// registerButtonPressControl(driverController, 5, (j, b) -> {
-		// 	Indexer.getInstance().setIndexerControlMode(IndexerControlMode.DISABLED);
-		// });
-
-		// //Shooter On Trigger
-		// registerTriggerPressControl( driverController, 3, (j, t) -> {
-		// 	Shooter.getInstance().setShooterControlMode(ShooterControlMode.SMART_VELOCITY);
-		// 	Shooter.getInstance().setShooterVelocity(3000);
-		// });
-
-		// //Shooter Off Trigger
-		// registerButtonPressControl(driverController, 2, (j, b) -> {
-		// 	Shooter.getInstance().setShooterControlMode(ShooterControlMode.DISABLED);
-		// });
-
-		mControlFunctions.add(() -> {
-			Indexer.getInstance().setIndexerControlMode(IndexerControlMode.ENABLED);
-			return true;
-		});
-
+		//Indexer On And Belt On And Intake On
 		registerButtonPressControl(driverController, 6, (j, b) -> {
-			TeleopActionRunner.runAction( AutomatedAction.fromAction(
-					new SetIndexerAction(() -> j.getRawButton(b)), 300));
+			TeleopActionRunner.runAction(AutomatedAction.fromAction(
+				new SetIndexerAction(false, () -> j.getRawButton(b)), 300));
+
+			TeleopActionRunner.runAction(AutomatedAction.fromAction(
+				new SetBeltAction(false, () -> j.getRawButton(b)), 300));
+		} );
+
+		//Shooter On
+		registerTriggerPressControl(driverController, 3, (j, b) -> {
+			TeleopActionRunner.runAction(AutomatedAction.fromAction(
+				new SetShooterAction(() -> j.getTriggerPressed(b, Constants.kControllerTriggerThreshold)), 300));
 		});
 
-		// registerButtonPressControl( driverController, 6, (j, b) -> {
-		// 	Shooter.getInstance().setShooterControlMode(ShooterControlMode.SMART_VELOCITY);
-		// 	Shooter.getInstance().setShooterVelocity(3000);
-		// } );
+		//Belt Transporter On
+		registerButtonPressControl(driverController, 5, (j, b) -> {
+			TeleopActionRunner.runAction(AutomatedAction.fromAction(
+				new SetBeltAction(true, () -> j.getRawButton(b)), 300));
+		});
 
-		// //Shooter Off Trigger
-		// registerButtonPressControl(driverController, 2, (j, b) -> {
-		// 	Shooter.getInstance().setShooterControlMode(ShooterControlMode.DISABLED);
-		// });
+		registerTriggerPressControl(driverController, 2, (j, b) -> {
+			TeleopActionRunner.runAction(AutomatedAction.fromAction(
+				new SetIntakeAction(false, () -> j.getTriggerPressed(b, Constants.kControllerTriggerThreshold)), 300));
+		});
 
     }
 

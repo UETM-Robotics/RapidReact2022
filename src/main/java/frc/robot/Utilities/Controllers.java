@@ -36,6 +36,7 @@ public class Controllers {
         indexerLeft = CANSpeedControllerBuilder.createDefaultSparkMax(Constants.PortConstants.indexerLeftPort, 0);
         indexerRight = CANSpeedControllerBuilder.createDefaultSparkMax(Constants.PortConstants.indexerRightPort, 0);
 
+        hoodMotor = CANSpeedControllerBuilder.createFastMasterSparkMax(Constants.PortConstants.hoodMotorPort, 0);
 
         try {
             navX = new NavX(SPI.Port.kMXP);
@@ -57,6 +58,8 @@ public class Controllers {
 
     private SparkMaxU indexerLeft;
     private SparkMaxU indexerRight;
+
+    private SparkMaxU hoodMotor;
 
     private NavX navX;
 
@@ -94,6 +97,10 @@ public class Controllers {
 
     public SparkMaxU getIndexerRightMotor() {
         return indexerRight;
+    }
+
+    public SparkMaxU getHoodMotor() {
+        return hoodMotor;
     }
 
     public NavX getNavX() {
