@@ -34,7 +34,7 @@ public class SetShooterAction implements Action {
     @Override
     public void start() {
         shooter.setShooterControlMode(Shooter.ShooterControlMode.SMART_VELOCITY);
-        shooter.setShooterVelocity(-3000);
+        shooter.setShooterVelocity(3500);
     }
 
 
