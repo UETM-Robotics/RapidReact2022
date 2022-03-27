@@ -2,8 +2,8 @@ package frc.robot.Utilities.Geometry;
 
 import java.text.DecimalFormat;
 
-import frc.robot.Utilities.TrajectoryFollowingMotion.Interpolable;
-import frc.robot.Utilities.TrajectoryFollowingMotion.Util;
+import frc.robot.Utilities.Interpolable;
+import frc.robot.Utilities.Util;
 
 /**
  * A translation in a 2d coordinate frame. Translations are simply shifts in an (x, y) plane.
@@ -154,6 +154,26 @@ public class Translation2d implements Interpolable<Translation2d> {
     public static double cross(Translation2d a, Translation2d b) {
         return a.x_ * b.y_ - a.y_ * b.x_;
     }
+
+    public Translation2d minus(Translation2d other) {
+        return new Translation2d(x_ - other.x_, y_ - other.y_);
+    }
+
+    public Translation2d times(double scalar) {
+        return new Translation2d(x_ * scalar, y_ * scalar);
+    }
+
+    public Translation2d plus(Translation2d other) {
+        return new Translation2d(x_ + other.x_, y_ + other.y_);
+    }
+
+    public Translation2d unaryMinus() {
+        return new Translation2d(-x_, -y_);
+    }
+
+    public double getDistance(Translation2d other) {
+        return Math.hypot(other.x() - x(), other.y() - y());
+      }
 
     public double distance(final Translation2d other) {
         return inverse().translateBy(other).norm();

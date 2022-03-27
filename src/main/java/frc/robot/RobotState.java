@@ -1,99 +1,134 @@
 package frc.robot;
 
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
+import edu.wpi.first.math.util.Units;
+import frc.robot.Lib.vision.GoalTracker;
+import frc.robot.Lib.vision.TargetInfo;
+import frc.robot.Utilities.RobotRelativeSpeed;
+import frc.robot.Utilities.Constants.TechConstants;
 import frc.robot.Utilities.Geometry.Pose2d;
 import frc.robot.Utilities.Geometry.Rotation2d;
-import frc.robot.Utilities.Geometry.Twist2d;
-import frc.robot.Utilities.TrajectoryFollowingMotion.InterpolatingDouble;
-import frc.robot.Utilities.TrajectoryFollowingMotion.InterpolatingTreeMap;
-import frc.robot.Utilities.TrajectoryFollowingMotion.Kinematics;
+import frc.robot.Utilities.Geometry.Translation2d;
+import frc.robot.Utilities.RamseteTrajectory.DifferentialDriveKinematics;
+import frc.robot.Utilities.RamseteTrajectory.DifferentialDriveOdometry;
+import frc.robot.Utilities.RamseteTrajectory.DifferentialDriveWheelSpeeds;
+import frc.robot.Utilities.RamseteTrajectory.Trajectory.State;
+import frc.robot.subsystems.Vision;
+
 
 public class RobotState {
-    private static RobotState instance_ = new RobotState();
 
-	public static RobotState getInstance() {
-		return instance_;
-	}
+    private static final RobotState instance = new RobotState();
 
-	private static final int kObservationBufferSize = 100;
+    private DifferentialDriveKinematics kinematics;
 
-	// FPGATimestamp -> Pose2d or Rotation2d
-	private final InterpolatingTreeMap<InterpolatingDouble, Pose2d> field_to_vehicle_ = new InterpolatingTreeMap<>(kObservationBufferSize);
-	private Twist2d vehicle_velocity_predicted_;
-	private Twist2d vehicle_velocity_measured_;
-	private double distance_driven_;
+    private GoalTracker vision_target = new GoalTracker();
 
-	private RobotState() {
-		reset(0, new Pose2d());
-	}
+    List<Translation2d> mCameraToVisionTargetPoses = new ArrayList<>();
 
-	/**
-	 * Resets the field to robot transform (robot's position on the field)
-	 */
-	public void reset(double start_time, Pose2d initial_field_to_vehicle) {
-		field_to_vehicle_.clear();
-//		field_to_vehicle_ = new InterpolatingTreeMap<>(kObservationBufferSize);
-		field_to_vehicle_.put(new InterpolatingDouble(start_time), initial_field_to_vehicle);
-        //TODO: Figure the bottom line of code out
-		//Drive.getInstance().setHeading(initial_field_to_vehicle.getRotation());
-		vehicle_velocity_predicted_ = Twist2d.identity();
-		vehicle_velocity_measured_ = Twist2d.identity();
-		distance_driven_ = 0.0;
-	}
+    private Pose2d mCurrentPose = new Pose2d(0, 0, Rotation2d.fromDegrees(0));
 
-	public void resetDistanceDriven() {
-		distance_driven_ = 0.0;
-	}
+    //TODO: DETERMINE VEHICLE TO SHOOTER POSE
+    //private Pose2d vehicle_to_shooter_ = new Pose2d(new Translation2d(), Rotation2d.fromDegrees(0)); //shooter w.r.t. robot
 
-	/**
-	 * Returns the robot's position on the field at a certain time. Linearly interpolates between stored robot positions
-	 * to fill in the gaps.
-	 */
-	public Pose2d getFieldToVehicle(double timestamp) {
-		return field_to_vehicle_.getInterpolated(new InterpolatingDouble(timestamp));
-	}
 
-	public Map.Entry<InterpolatingDouble, Pose2d> getLatestFieldToVehicle() {
-		return field_to_vehicle_.lastEntry();
-	}
+    public static RobotState getInstance() {
+        return instance;
+    }
 
-	public Pose2d getPredictedFieldToVehicle(double lookahead_time) {
-		return getLatestFieldToVehicle().getValue()
-				.transformBy(Pose2d.exp(vehicle_velocity_predicted_.scaled(lookahead_time)));
-	}
+    private RobotState() {
+        kinematics = new DifferentialDriveKinematics(Units.inchesToMeters(22.25));
+    }
 
-	public void addFieldToVehicleObservation(double timestamp, Pose2d observation) {
-		field_to_vehicle_.put(new InterpolatingDouble(timestamp), observation);
-	}
 
-	public void addObservations(double timestamp, Twist2d measured_velocity,
-	                                         Twist2d predicted_velocity) {
-		addFieldToVehicleObservation(timestamp,
-				Kinematics.integrateForwardKinematics(getLatestFieldToVehicle().getValue(), measured_velocity));
-		vehicle_velocity_measured_ = measured_velocity;
-		vehicle_velocity_predicted_ = predicted_velocity;
-	}
+    public DifferentialDriveWheelSpeeds toWheelSpeeds(State state) {
+        return kinematics.toWheelSpeeds(
+            new RobotRelativeSpeed(
+                state.velocityMetersPerSecond,
+                0,
+                state.curvatureRadPerMeter * state.velocityMetersPerSecond
+            )
+        );
+    }
 
-	public Twist2d generateOdometryFromSensors(double left_encoder_delta_distance, double
-			right_encoder_delta_distance, Rotation2d current_gyro_angle) {
-//		final Pose2d last_measurement = getLatestFieldToVehicle().getValue();
-		final Twist2d delta = Kinematics.forwardKinematics(getLatestFieldToVehicle().getValue().getRotation(),
-				left_encoder_delta_distance, right_encoder_delta_distance,
-				current_gyro_angle);
-		distance_driven_ += delta.dx; //do we care about dy here?
-		return delta;
-	}
+    public DifferentialDriveWheelSpeeds toWheelSpeeds(RobotRelativeSpeed robotSpeed) {
+        return kinematics.toWheelSpeeds(robotSpeed);
+    }
 
-	public double getDistanceDriven() {
-		return distance_driven_;
-	}
 
-	public Twist2d getPredictedVelocity() {
-		return vehicle_velocity_predicted_;
-	}
+    public synchronized void resetVision() {
+        vision_target.reset();
+    }
 
-	public Twist2d getMeasuredVelocity() {
-		return vehicle_velocity_measured_;
-	}
+
+    public synchronized void updateFieldToRobotPose( Pose2d pose ) {
+        mCurrentPose = pose;
+    }
+
+
+    public synchronized Pose2d getFieldToVehicleMeters() {
+        return mCurrentPose;
+    }
+
+    public synchronized Pose2d getFieldToVehicleInches(double timestamp) {
+        return new Pose2d(Units.metersToInches(mCurrentPose.x()), Units.metersToInches(mCurrentPose.y()), mCurrentPose.getRotation());
+    }
+
+    public synchronized Pose2d getFieldToShooter(double timestamp) {
+        return getFieldToVehicleInches(timestamp).transformBy(Pose2d.fromRotation(Rotation2d.fromDegrees(0)));
+    }
+
+    private Translation2d getCameraToVisionTargetPose(TargetInfo target, boolean high, Vision source) {
+        // Compensate for camera pitch
+        Translation2d xz_plane_translation = new Translation2d(target.getX(), target.getZ()).rotateBy(source.getHorizontalPlaneToLens());
+        double x = xz_plane_translation.x();
+        double y = target.getY();
+        double z = xz_plane_translation.y();
+
+        // find intersection with the goal
+        double differential_height = source.getLensHeight() - TechConstants.kHubTargetHeight;
+        if ((z < 0.0) == (differential_height > 0.0)) {
+            double scaling = differential_height / -z;
+            double distance = Math.hypot(x, y) * scaling;
+            Rotation2d angle = new Rotation2d(x, y, true);
+            return new Translation2d(distance * angle.cos(), distance * angle.sin());
+        }
+
+        return null;
+    }
+
+
+    private void updatePortGoalTracker(double timestamp, List<Translation2d> cameraToVisionTargetPoses, GoalTracker tracker, Vision source) {
+        if (cameraToVisionTargetPoses.size() != 2 ||
+                cameraToVisionTargetPoses.get(0) == null ||
+                cameraToVisionTargetPoses.get(1) == null) return;
+        Pose2d cameraToVisionTarget = Pose2d.fromTranslation(cameraToVisionTargetPoses.get(0).interpolate(
+                cameraToVisionTargetPoses.get(1), 0.5));
+
+        Pose2d fieldToVisionTarget = getFieldToShooter(timestamp).transformBy(source.getShooterToLens()).transformBy(cameraToVisionTarget);
+        tracker.update(timestamp, List.of(new Pose2d(fieldToVisionTarget.getTranslation(), Rotation2d.identity())));
+    }
+
+    /**
+     * 
+     * @param timestamp - timestamp
+     * @param observations - list of observations
+     * @param source - Vision object
+     */
+    public synchronized void addVisionUpdate(double timestamp, List<TargetInfo> observations, Vision source) {
+        mCameraToVisionTargetPoses.clear();
+
+        if (observations == null || observations.isEmpty()) {
+            vision_target.update(timestamp, new ArrayList<>());
+            return;
+        }
+
+        for (TargetInfo target : observations) {
+            mCameraToVisionTargetPoses.add(getCameraToVisionTargetPose(target, false, source));
+        }
+
+        updatePortGoalTracker(timestamp, mCameraToVisionTargetPoses, vision_target, source);
+    }
 }

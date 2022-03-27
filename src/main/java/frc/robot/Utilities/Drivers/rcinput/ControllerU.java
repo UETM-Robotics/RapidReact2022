@@ -2,8 +2,8 @@ package frc.robot.Utilities.Drivers.rcinput;
 
 import edu.wpi.first.hal.HALUtil;
 import edu.wpi.first.wpilibj.Joystick;
+import frc.robot.Utilities.Constants.TechConstants;
 import edu.wpi.first.wpilibj.GenericHID;
-import frc.robot.Utilities.Constants;
 
 public class ControllerU {
     
@@ -11,6 +11,7 @@ public class ControllerU {
 
 	private boolean[] prevButtonVal;
 	private boolean[] prevTriggerVal;
+	private boolean povPressed;
 
 	private Joystick backupJoystick;
 
@@ -46,6 +47,23 @@ public class ControllerU {
 			return backupJoystick.getPOV();
 		else
 			return -1;
+	}
+
+	public Direction getPOVDirection() {
+		switch(getPOV()) {
+			case 0:
+				return Direction.UP;
+			case 90:
+				return Direction.RIGHT;
+			case 180:
+				return Direction.DOWN;
+			case 270:
+				return Direction.LEFT;
+			case -1:
+				return Direction.NEUTRAL;
+			default:
+				return null;
+		}
 	}
 
 	public double getRawAxis(int axis) {
@@ -88,6 +106,75 @@ public class ControllerU {
 		}
 	}
 
+	public static enum Direction {
+		UP(0),
+		RIGHT(90),
+		DOWN(180),
+		LEFT(270),
+		NEUTRAL(-1);
+
+		int direction;
+		private Direction(int direction) {
+			this.direction = direction;
+		}
+	}
+
+	public boolean getRisingEdgeDpad(Direction direction) {
+		try {
+			currDpadRising = getPOVDirection() == direction;
+			retValDpadRising = ( getPOVDirection() != Direction.NEUTRAL) && currDpadRising && !povPressed;
+			//setPrevPOVVal( getPOVDirection() );
+
+			return retValDpadRising;
+		} catch(Exception ex) {
+			return false;
+		}
+	}
+
+	private boolean upPressed = false;
+	public boolean getRisingUpDpad() {
+		if(getPOVDirection() == Direction.UP && !upPressed) {
+			upPressed = true;
+			return true;
+		} else if( getPOVDirection() != Direction.UP) {
+			upPressed = false;
+			return false;
+		} else {
+			return false;
+		}
+	}
+
+	private boolean downPressed = false;
+	public boolean getRisingDownDpad() {
+		if(getPOVDirection() == Direction.DOWN && !downPressed) {
+			downPressed = true;
+			return true;
+		} else if( getPOVDirection() != Direction.DOWN) {
+			downPressed = false;
+			return false;
+		} else {
+			return false;
+		}
+	}
+
+	private boolean currDpadRising;
+	private boolean retValDpadRising;
+	// public boolean getRisingEdgeDpad(int pov) {
+	// 	try {
+	// 		if(!isPOVInputActive()) {
+	// 			setPrevPOVVal(-1);
+	// 			return false;
+	// 		}
+
+	// 		currDpadRising = (getPOV() == pov);
+	// 		retValDpadRising = ( getPOV() != prevPOV ) && currDpadRising;
+	// 		setPrevPOVVal(getPOV());
+	// 		return retValDpadRising;
+	// 	} catch(Exception ex) {
+	// 		return false;
+	// 	}
+	// }
+
 	private boolean currButtonFalling;
 	private boolean retValButtonFalling;
 	public boolean getFallingEdgeButton(int button) {
@@ -129,7 +216,7 @@ public class ControllerU {
 	public boolean isAxisInputActive() {
 		if (backupJoystick != null)
 			for (int i = 0; i < backupJoystick.getAxisCount(); i++) {
-				if (Math.abs(getRawAxis(i)) > Constants.kJoystickJogThreshold) {
+				if (Math.abs(getRawAxis(i)) > TechConstants.kJoystickJogThreshold) {
 					return true;
 				}
 			}

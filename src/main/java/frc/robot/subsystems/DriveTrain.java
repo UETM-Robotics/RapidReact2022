@@ -2,171 +2,158 @@ package frc.robot.subsystems;
 
 import java.util.concurrent.locks.ReentrantLock;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
+import com.kauailabs.navx.frc.AHRS;
 import com.revrobotics.REVLibError;
 import com.revrobotics.CANSparkMax.ControlType;
 import com.revrobotics.CANSparkMax.IdleMode;
 
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.robot.Utilities.Constants;
+import frc.robot.Loops.Loop;
+import frc.robot.Loops.Looper;
 import frc.robot.Utilities.Controllers;
 import frc.robot.Utilities.CustomSubsystem;
-import frc.robot.Utilities.DriveControlState;
-import frc.robot.Utilities.DriveMotorValues;
-import frc.robot.Utilities.Drivers.NavX;
+import frc.robot.Utilities.DriveSignal;
+import frc.robot.Utilities.SynchronousPIDF;
+import frc.robot.Utilities.Constants.TechConstants;
 import frc.robot.Utilities.Drivers.SparkHelper;
+//import frc.robot.Utilities.Drivers.NavX;
 import frc.robot.Utilities.Drivers.SparkMaxU;
+import frc.robot.Utilities.Drivers.rcinput.ControllerU;
 import frc.robot.Utilities.Geometry.Rotation2d;
-import frc.robot.Utilities.Geometry.Twist2d;
-import frc.robot.Utilities.Loops.Loop;
-import frc.robot.Utilities.Loops.Looper;
-import frc.robot.Utilities.TrajectoryFollowingMotion.Kinematics;
-import frc.robot.Utilities.TrajectoryFollowingMotion.Path;
-import frc.robot.Utilities.TrajectoryFollowingMotion.PathFollower;
-import frc.robot.Utilities.TrajectoryFollowingMotion.PathFollowerRobotState;
-import frc.robot.Utilities.TrajectoryFollowingMotion.RigidTransform2d;
-import frc.robot.Utilities.TrajectoryFollowingMotion.Util;
-import frc.robot.Utilities.TrajectoryFollowingMotion.Lookahead;
-
-public class DriveTrain extends SubsystemBase implements CustomSubsystem{
-
-    private static DriveTrain instance = null;
+import frc.robot.Utilities.RamseteTrajectory.DifferentialDriveWheelSpeeds;
+import frc.robot.Utilities.RamseteTrajectory.RamseteController;
+import frc.robot.Utilities.RamseteTrajectory.Trajectory;
 
 
-    private static ReentrantLock _subsystemMutex = new ReentrantLock();
+public class DriveTrain extends Subsystem implements CustomSubsystem {
 
-    public SparkMaxU leftFront, rightFront;
-    public SparkMaxU leftHind , rightHind;
 
-    private NavX mNavXBoard;
+    private static final DriveTrain instance = new DriveTrain();
+    private final Controllers controllers = Controllers.getInstance();
 
-    private DriveControlState mControlMode;
-    private boolean mPrevBrakeModeVal;
-
-    private Path mCurrentPath = null;
-    private PathFollower mPathFollower;
-
-    private PathFollowerRobotState mRobotState = PathFollowerRobotState.getInstance();
 
     public static DriveTrain getInstance() {
-        if(instance == null) {
-            instance = new DriveTrain();
-        }
-
         return instance;
     }
 
+    private DriveControlState mControlMode = DriveControlState.DISABLED;
+    private static ReentrantLock _subsystemMutex = new ReentrantLock();
+
+    private final SparkMaxU leftFront, rightFront;
+    private final SparkMaxU leftHind, rightHind;
+
+    //private NavX mNavXBoard;
+    private AHRS mNavXBoard;
+
+    private ControllerU driverController;
+
+
+    private Trajectory mCurrentTrajectory;
+    private RamseteController mController;
+
+    private SynchronousPIDF rotationalPIDF;
+    private double mHubTargetingAngleGuess = 0;
+
+
+    private double mThrottle = 0;
+    private double mTurn = 0;
+    private boolean mPrevBrakeModeVal = false;
+
+    private final PeriodicIO mPeriodicIO = new PeriodicIO();
+
+
     private DriveTrain() {
 
-        Controllers robotControllers = Controllers.getInstance();
+        leftFront = controllers.getLeftFrontDriveMotor();
+        rightFront = controllers.getRightFrontDriveMotor();
 
-        leftFront = robotControllers.getLeftFrontDrive();
-        leftHind = robotControllers.getLeftHindDrive();
+        leftHind = controllers.getLeftHindDriveMotor();
+        rightHind = controllers.getRightHindDriveMotor();
 
-        rightFront = robotControllers.getRightFrontDrive();
-        rightHind = robotControllers.getRightHindDrive();
-
-        mNavXBoard = robotControllers.getNavX();
-        
-        
+        mNavXBoard = controllers.getNavX();
 
 
-        mControlMode = DriveControlState.PATH_FOLLOWING;
-        mPrevBrakeModeVal = false;
+        rotationalPIDF = new SynchronousPIDF();
 
+        //m_odometry = new DifferentialDriveOdometry(getRotation(), new Pose2d(0, 0, Rotation2d.fromDegrees(0)));
+
+        driverController = controllers.getDriverController();
     }
+
 
     private final Loop mLoop = new Loop() {
 
         @Override
         public void onFirstStart(double timestamp) {
-            synchronized (DriveTrain.this) {
-                subsystemHome();
-				mNavXBoard.zeroYaw();
-				mNavXBoard.reset();
-
-
-				leftFront.getEncoder().setPosition(0);
-				rightFront.getEncoder().setPosition(0);
-            }
+            // TODO Auto-generated method stub
+            
         }
 
         @Override
         public void onStart(double timestamp) {
-            synchronized (DriveTrain.this) {
-                setDriveOpenLoop(DriveMotorValues.NEUTRAL);
-                setBrakeMode(false);
-                setDriveVelocity(new DriveMotorValues(0, 0));
-            }
+            subsystemHome();
         }
 
         @Override
         public void onLoop(double timestamp, boolean isAuto) {
-            synchronized (DriveTrain.this) {
-                switch (mControlMode) {
-					case OPEN_LOOP:
-						break;
-					case VELOCITY:
-						break;
-					case TURN_TO_HEADING:
-						//updateTurnToHeading(timestamp);
-						break;
-					case PATH_FOLLOWING:
-						if (mPathFollower != null) {
-							updatePathFollower(timestamp);
-							//mCSVWriter.add(mPathFollower.getDebug());
-						}
-						break;
-					case AUTO_AIMING:
-						break;
-					default:
-						//ConsoleReporter.report("Unexpected drive control state: " + mControlMode);
-						break;
-				}
+            synchronized(DriveTrain.this) {
+
+                //m_robotPose = m_odometry.update(getRotation(), getLeftDistanceMeters(), getRightDistanceMeters());
+               
+                switch(mControlMode) {
+
+                    case AUTO_AIMING:
+
+                        updateAutoAiming();
+
+                        break;
+                    case DRIVER_CONTROL:
+
+                        mThrottle = -driverController.getNormalizedAxis(1, TechConstants.kJoystickDeadband);
+                        mTurn = driverController.getNormalizedAxis(2, TechConstants.kJoystickDeadband) * 0.4;
+                        //dTrain.setBrakeMode(driverController.getRawButton(5));
+                        //dTrain.setBrakeMode(driverController.getTriggerPressed(2, Constants.kControllerTriggerThreshold));
+                        //DriveSignalOutput.set(Math.max(Math.min(mThrottle + mTurn, 1), -1), Math.max(Math.min(mThrottle - mTurn, 1), -1));
+                        leftFront.set(Math.max(Math.min(mThrottle + mTurn, 1), -1));
+                        rightFront.set( Math.max(Math.min(mThrottle - mTurn, 1), -1));
+
+                        break;
+                    case OPEN_LOOP:
+
+                        leftFront.set(mPeriodicIO.left_driveOpenLoopDemand);
+                        rightFront.set(mPeriodicIO.right_driveOpenLoopDemand);
+
+                        break;
+                    case PATH_FOLLOWING:
+                        //updateTrajectoryFollower(timestamp);
+                        break;
+                    case DISABLED:
+                        break;
+                    default:
+                        directlySetDrivePower(DriveSignal.NEUTRAL);
+                        DriverStation.reportError("Anomaly in setting DriveTrain Control State", true);
+                        break;
+
+                }
+                
             }
         }
 
         @Override
         public void onStop(double timestamp) {
-
+            // TODO Auto-generated method stub
+            
         }
+
     };
 
-    @Override
-    public void subsystemHome() {
-		mNavXBoard.zeroYaw();
-		mNavXBoard.reset();
+    private synchronized void directlySetDrivePower(DriveSignal driveSignal) {
+        leftFront.set(driveSignal.getLeft());
+        rightFront.set(driveSignal.getRight());
+    }
 
-
-		leftFront.getEncoder().setPosition(0);
-		rightFront.getEncoder().setPosition(0);
-	}
-
-    public void setControlMode(DriveControlState controlMode) {
-		if (controlMode != mControlMode) {
-			try {
-				_subsystemMutex.lock();
-				mControlMode = controlMode;
-				_subsystemMutex.unlock();
-			} catch (Exception ex) {
-                
-			}
-		}
-	}
-
-	public DriveControlState getDriveControlState() {
-		return mControlMode;
-	}
-
-    public synchronized void setDriveOpenLoop(DriveMotorValues d) {
-        setControlMode(DriveControlState.OPEN_LOOP);
-
-        leftFront.set(d.leftDrive);
-        rightFront.set(d.rightDrive);
-	}
-
-    public void setBrakeMode(boolean brakeMode) {
+    public synchronized void setBrakeMode(boolean brakeMode) {
 		if (mPrevBrakeModeVal != brakeMode) {
 			_subsystemMutex.lock();
 
@@ -180,176 +167,146 @@ public class DriveTrain extends SubsystemBase implements CustomSubsystem{
 		}
 	}
 
-    public synchronized void setDriveVelocity(DriveMotorValues d) {
-		setDriveVelocity(d, true);
+	public synchronized void setDriveOpenLoop(DriveSignal d) {
+
+		if(mControlMode != DriveControlState.OPEN_LOOP) {
+			setBrakeMode(false);
+			setControlMode(DriveControlState.OPEN_LOOP);
+		}
+
+		mPeriodicIO.left_driveOpenLoopDemand = d.getLeft();
+		mPeriodicIO.right_driveOpenLoopDemand = d.getRight();
+
 	}
 
-	public synchronized void setDriveVelocity(DriveMotorValues d, boolean autoChangeMode) {
-		if (autoChangeMode)
-			setControlMode(DriveControlState.VELOCITY);
+
+    public synchronized void updateTrajectoryFollower(double timestamp) {
+
+    }
+
+    public synchronized void updatePathVelocitySetpoint(DriveSignal d) {
+
+        final double max_desired = Math.max(Math.abs(d.getLeft()), Math.abs(d.getRight()));
+		final double scale = max_desired > TechConstants.kDriveMaxVelocity ? TechConstants.kDriveMaxVelocity / max_desired : 1.0;
         
-        leftFront.set(Util.convertRPMToNativeUnits(d.leftDrive), ControlType.kVelocity);
-        rightFront.set(Util.convertRPMToNativeUnits(d.rightDrive), ControlType.kVelocity);
+        leftFront.set(d.getLeft() * scale, ControlType.kSmartVelocity);
+        rightFront.set(d.getRight() * scale, ControlType.kSmartVelocity);
 
-	}
+    }
 
-    private void updatePathFollower(double timestamp) {
-		RigidTransform2d robot_pose = mRobotState.getLatestFieldToVehicle().getValue();
-		Twist2d command = mPathFollower.update(timestamp, robot_pose,
-				PathFollowerRobotState.getInstance().getDistanceDriven(), PathFollowerRobotState.getInstance().getPredictedVelocity().dx);
+    public synchronized void setWantDriveTrajectory(Trajectory trajectory, boolean reversed) {
+        
+        if (mCurrentTrajectory != trajectory || mControlMode != DriveControlState.PATH_FOLLOWING) {
+            setControlMode(DriveControlState.PATH_FOLLOWING);
+            mCurrentTrajectory = trajectory;
+			// setControlMode(DriveControlState.PATH_FOLLOWING);
+			// PathFollowerRobotState.getInstance().resetDistanceDriven();
+			// mPathFollower = new PathFollower(path, reversed,
+			// 		new PathFollower.Parameters(
+			// 				new Lookahead(Constants.kMinLookAhead, Constants.kMaxLookAhead,
+			// 						Constants.kMinLookAheadSpeed, Constants.kMaxLookAheadSpeed),
+			// 				Constants.kInertiaSteeringGain, Constants.kPathFollowingProfileKp,
+			// 				Constants.kPathFollowingProfileKi, Constants.kPathFollowingProfileKv,
+			// 				Constants.kPathFollowingProfileKffv, Constants.kPathFollowingProfileKffa,
+			// 				Constants.kPathFollowingMaxVel, Constants.kPathFollowingMaxAccel,
+			// 				Constants.kPathFollowingGoalPosTolerance, Constants.kPathFollowingGoalVelTolerance,
+			// 				Constants.kPathStopSteeringDistance));
 
-		if (!mPathFollower.isFinished()) {
-			Kinematics.DriveVelocity setpoint = Kinematics.inverseKinematics(command);
-			updatePathVelocitySetpoint(setpoint.left, setpoint.right);
-
-			SmartDashboard.putNumber("left setpoint", setpoint.left);
-			SmartDashboard.putNumber("right setpoint", setpoint.right);
-
-			//ConsoleReporter.report(mPathFollower.getDebug());
-			//ConsoleReporter.report("Left2Cube: " + inchesPerSecondToRpm(setpoint.left) + ", Right2Cube: " + inchesPerSecondToRpm(setpoint.right));
-			//ConsoleReporter.report("Left2Cube Actual: " + Util.convertNativeUnitsToRPM(mLeftMaster.getSelectedSensorVelocity(0)) + ", Right2Cube Actual: " + Util.convertNativeUnitsToRPM(mRightMaster.getSelectedSensorVelocity(0)));
-		} else {
-			updatePathVelocitySetpoint(0, 0);
-			setControlMode(DriveControlState.VELOCITY);
-		}
-	}
-
-	private void updatePathVelocitySetpoint(double left_inches_per_sec, double right_inches_per_sec) {
-		final double max_desired = Math.max(Math.abs(left_inches_per_sec), Math.abs(right_inches_per_sec));
-		final double scale = max_desired > Constants.kDriveHighGearMaxSetpoint ? Constants.kDriveHighGearMaxSetpoint / max_desired : 1.0;
-
-        // leftFront.set(Util.convertRPMToNativeUnits(inchesPerSecondToRpm(left_inches_per_sec * scale)), ControlType.kVelocity);
-        // rightFront.set(Util.convertRPMToNativeUnits(inchesPerSecondToRpm(right_inches_per_sec * scale)), ControlType.kVelocity);
-
-		leftFront.set(left_inches_per_sec / 165.354);
-		rightFront.set(right_inches_per_sec / 165.354);
-
-		//ConsoleReporter.report("Requested Drive Velocity Left2Cube/Right2Cube: " + left_inches_per_sec + "/" + right_inches_per_sec);
-		//ConsoleReporter.report("Actual Drive Velocity Left2Cube/Right2Cube: " + getLeftVelocityInchesPerSec() + "/" + getRightVelocityInchesPerSec());
-	}
-
-    private static double rotationsToInches(double rotations) {
-		return rotations * (Constants.kDriveWheelDiameterInches * Math.PI);
-	}
-
-    private static double rpmToInchesPerSecond(double rpm) {
-		return rotationsToInches(rpm) / 60;
-	}
-
-    private static double inchesToRotations(double inches) {
-		return inches / (Constants.kDriveWheelDiameterInches * Math.PI);
-	}
-
-    private static double inchesPerSecondToRpm(double inches_per_second) {
-		return inchesToRotations(inches_per_second) * 60;
-	}
-
-    public double getLeftDistanceInches() {
-		return leftFront.getEncoder().getPosition();
-	}
-
-    public double getRightDistanceInches() {
-		return rightFront.getEncoder().getPosition();
-	}
-
-    public synchronized Rotation2d getGyroAngle() {
-		return mNavXBoard.getYaw();
-	}
-
-    public synchronized void setGyroAngle(Rotation2d angle) {
-		mNavXBoard.reset();
-		mNavXBoard.setAngleAdjustment(angle);
-	}
-
-	public void setBruh() {
-		leftFront.set(0.05);
-		rightFront.set(0.05);
-	}
-
-    public double getLeftVelocityInchesPerSec() { 
-		return ( leftFront.getEncoder().getVelocity() * Math.PI * 6) / 60;
-		//rpmToInchesPerSecond(Util.convertNativeUnitsToRPM(leftFront.getEncoder().getVelocity())); 
-	}
-
-	public double getRightVelocityInchesPerSec() { return ( rightFront.getEncoder().getVelocity() * Math.PI * 6) / 60; }
-
-    public synchronized void setWantDrivePath(Path path, boolean reversed) {
-		if (mCurrentPath != path || mControlMode != DriveControlState.PATH_FOLLOWING) {
-			setControlMode(DriveControlState.PATH_FOLLOWING);
-			PathFollowerRobotState.getInstance().resetDistanceDriven();
-			mPathFollower = new PathFollower(path, reversed,
-					new PathFollower.Parameters(
-							new Lookahead(Constants.kMinLookAhead, Constants.kMaxLookAhead,
-									Constants.kMinLookAheadSpeed, Constants.kMaxLookAheadSpeed),
-							Constants.kInertiaSteeringGain, Constants.kPathFollowingProfileKp,
-							Constants.kPathFollowingProfileKi, Constants.kPathFollowingProfileKv,
-							Constants.kPathFollowingProfileKffv, Constants.kPathFollowingProfileKffa,
-							Constants.kPathFollowingMaxVel, Constants.kPathFollowingMaxAccel,
-							Constants.kPathFollowingGoalPosTolerance, Constants.kPathFollowingGoalVelTolerance,
-							Constants.kPathStopSteeringDistance));
-
-			mCurrentPath = path;
+			// mCurrentPath = path;
 		} else {
 		}
+
 	}
 
-    public synchronized boolean isDoneWithPath() {
-		if (mControlMode == DriveControlState.PATH_FOLLOWING && mPathFollower != null) {
-			return mPathFollower.isFinished();
-		} else {
-			if (mPathFollower != null)
-				return mPathFollower.isFinished();
-			else
-				return true;
-		}
-	}
+    public synchronized boolean isDoneWithTrajectory() {
+        return mController.atReference();
+    }
 
-    public synchronized void forceDoneWithPath() {
-		if (mControlMode == DriveControlState.PATH_FOLLOWING && mPathFollower != null) {
-			mPathFollower.forceFinish();
-		} else {
-		}
-	}
 
-	public synchronized boolean hasPassedMarker(String marker) {
-		if (mControlMode == DriveControlState.PATH_FOLLOWING && mPathFollower != null) {
-			return mPathFollower.hasPassedMarker(marker);
-		} else {
-			if (mPathFollower != null)
-				return (mPathFollower.isFinished() || mPathFollower.hasPassedMarker(marker));
-			else {
-				//TODO: Test with false value
-				return true;
+    public synchronized void setControlMode(DriveControlState controlMode) {
+		if (controlMode != mControlMode) {
+			try {
+				_subsystemMutex.lock();
+				mControlMode = controlMode;
+				_subsystemMutex.unlock();
+			} catch (Exception ex) {
+                
 			}
 		}
 	}
 
+
+    public synchronized Rotation2d getRotation() {
+        //return mNavXBoard.getYaw();
+        return Rotation2d.fromDegrees(mNavXBoard.getAngle());
+    }
+
+    public synchronized double getLeftDistanceMeters() {
+        return leftFront.getEncoder().getPosition();
+    }
+
+    public synchronized double getRightDistanceMeters() {
+        return rightFront.getEncoder().getPosition();
+    }
+
+    public synchronized DifferentialDriveWheelSpeeds getWheelSpeeds() {
+        return new DifferentialDriveWheelSpeeds(leftFront.getEncoder().getVelocity(), rightFront.getEncoder().getVelocity());
+    }
+
+
+    private void updateAutoAiming() {
+
+        SmartDashboard.putNumber("Guessed Angle", mHubTargetingAngleGuess);
+
+    }
+
+    public synchronized void setHubAimingGuess(double guess) {
+        if (guess != mHubTargetingAngleGuess) {
+			try {
+				_subsystemMutex.lock();
+                mHubTargetingAngleGuess = guess;
+				_subsystemMutex.unlock();
+			} catch (Exception ex) {
+                
+			}
+		}
+    }
+
+    public boolean isAimedAtHub() {
+        return rotationalPIDF.onTarget(0.05);
+    }
+
+
     @Override
     public void init() {
+
+        leftFront.restoreFactoryDefaults();
+        rightFront.restoreFactoryDefaults();
+
         rightFront.setInverted(true);
         rightHind.setInverted(true);
 
         leftFront.setInverted(false);
         leftHind.setInverted(false);
 
-		leftFront.getEncoder().setVelocityConversionFactor(1);
-		rightFront.getEncoder().setVelocityConversionFactor(1);
+        leftFront.getEncoder().setPositionConversionFactor( (0.1524 * Math.PI) / 10.71 );
+        rightFront.getEncoder().setPositionConversionFactor( (0.1524 * Math.PI) / 10.71 );
 
-		leftFront.getEncoder().setPositionConversionFactor(1);
-		rightFront.getEncoder().setPositionConversionFactor(1);
+        leftFront.getEncoder().setVelocityConversionFactor( (0.1524 * Math.PI) / 60.0 / 10.71 );
+        rightFront.getEncoder().setVelocityConversionFactor( (0.1524 * Math.PI) / 60.0 / 10.71 );
 
-		leftFront.setIdleMode(IdleMode.kCoast);
+        leftFront.setIdleMode(IdleMode.kCoast);
 		rightFront.setIdleMode(IdleMode.kCoast);
 
 		leftHind.setIdleMode(IdleMode.kCoast);
 		rightHind.setIdleMode(IdleMode.kCoast);
 
 
-		leftFront.setSmartCurrentLimit(40);
-		rightFront.setSmartCurrentLimit(40);
+		leftFront.setSmartCurrentLimit(35);
+		rightFront.setSmartCurrentLimit(35);
 
-		leftHind.setSmartCurrentLimit(40);
-		rightHind.setSmartCurrentLimit(40);
+		leftHind.setSmartCurrentLimit(35);
+		rightHind.setSmartCurrentLimit(35);
 
 
 		leftFront.setOpenLoopRampRate(0.15);
@@ -358,39 +315,80 @@ public class DriveTrain extends SubsystemBase implements CustomSubsystem{
 		leftHind.setOpenLoopRampRate(0.15);
 		rightHind.setOpenLoopRampRate(0.15);
 
+
+        rotationalPIDF.setPID(TechConstants.kDriveRotationalKp, TechConstants.kDriveRotationalKi, TechConstants.kDriveRotationalKd);
+		rotationalPIDF.setSetpoint(0);
+
+
+        //TODO: IF AT ALL POSSIBLE AVOID DEADBAND
+        //lol just tune better bro
+		//rotationalPIDF.setDeadband(TechConstants.llTargetingDeadband);
+
+
         boolean setSucceeded;
 		int retryCounter = 0;
 
 		do {
 			setSucceeded = true;
 
-            setSucceeded &= leftFront.getEncoder().setMeasurementPeriod(10) == REVLibError.kOk;
+            setSucceeded &= leftFront.getEncoder().setMeasurementPeriod(20) == REVLibError.kOk;
 
-            setSucceeded &= rightFront.getEncoder().setMeasurementPeriod(10) == REVLibError.kOk;
+            setSucceeded &= rightFront.getEncoder().setMeasurementPeriod(20) == REVLibError.kOk;
 
-		} while(!setSucceeded && retryCounter++ < Constants.kSparkMaxRetryCount);
+		} while(!setSucceeded && retryCounter++ < TechConstants.kSparkMaxRetryCount);
 
-        setSucceeded &= SparkHelper.setPIDGains(leftFront, 0, Constants.kDriveHighGearVelocityKp, Constants.kDriveHighGearVelocityKi, Constants.kDriveHighGearVelocityKd, Constants.kDriveHighGearVelocityKf, Constants.kDriveHighGearVelocityRampRate, Constants.kDriveHighGearVelocityIZone);
-        setSucceeded &= SparkHelper.setPIDGains(leftFront, 1, Constants.kDriveHighGearVelocityKp, Constants.kDriveHighGearVelocityKi, Constants.kDriveHighGearVelocityKd, Constants.kDriveHighGearVelocityKf, Constants.kDriveHighGearVelocityRampRate, Constants.kDriveHighGearVelocityIZone);
-        setSucceeded &= SparkHelper.setPIDGains(rightFront, 0, Constants.kDriveHighGearVelocityKp, Constants.kDriveHighGearVelocityKi, Constants.kDriveHighGearVelocityKd, Constants.kDriveHighGearVelocityKf, Constants.kDriveHighGearVelocityRampRate, Constants.kDriveHighGearVelocityIZone);
-        setSucceeded &= SparkHelper.setPIDGains(rightFront, 1, Constants.kDriveHighGearVelocityKp, Constants.kDriveHighGearVelocityKi, Constants.kDriveHighGearVelocityKd, Constants.kDriveHighGearVelocityKf, Constants.kDriveHighGearVelocityRampRate, Constants.kDriveHighGearVelocityIZone);
+        setSucceeded &= SparkHelper.setPIDGains(leftFront, 0, TechConstants.kDriveVelocityKp, TechConstants.kDriveVelocityKi, TechConstants.kDriveVelocityKd, TechConstants.kDriveVelocityKf, TechConstants.kDriveVelocityRampRate, TechConstants.kDriveVelocityIZone);
+        setSucceeded &= SparkHelper.setPIDGains(leftFront, 1, TechConstants.kDriveVelocityKp, TechConstants.kDriveVelocityKi, TechConstants.kDriveVelocityKd, TechConstants.kDriveVelocityKf, TechConstants.kDriveVelocityRampRate, TechConstants.kDriveVelocityIZone);
+        setSucceeded &= SparkHelper.setPIDGains(rightFront, 0, TechConstants.kDriveVelocityKp, TechConstants.kDriveVelocityKi, TechConstants.kDriveVelocityKd, TechConstants.kDriveVelocityKf, TechConstants.kDriveVelocityRampRate, TechConstants.kDriveVelocityIZone);
+        setSucceeded &= SparkHelper.setPIDGains(rightFront, 1, TechConstants.kDriveVelocityKp, TechConstants.kDriveVelocityKi, TechConstants.kDriveVelocityKd, TechConstants.kDriveVelocityKf, TechConstants.kDriveVelocityRampRate, TechConstants.kDriveVelocityIZone);
+
+		setSucceeded &= leftFront.getPIDController().setSmartMotionAccelStrategy(TechConstants.kDriveAccelStrategy, 0) ==  REVLibError.kOk;
+		setSucceeded &= rightFront.getPIDController().setSmartMotionAccelStrategy(TechConstants.kDriveAccelStrategy, 0) == REVLibError.kOk;
+		
+		setSucceeded &= leftFront.getPIDController().setSmartMotionMaxAccel(TechConstants.kDriveMaxAccel, 0) ==  REVLibError.kOk;
+		setSucceeded &= rightFront.getPIDController().setSmartMotionMaxAccel(TechConstants.kDriveMaxAccel, 0) == REVLibError.kOk;
+
+		setSucceeded &= leftFront.getPIDController().setSmartMotionMaxVelocity(TechConstants.kDriveMaxVelocity, 0) ==  REVLibError.kOk;
+		setSucceeded &= rightFront.getPIDController().setSmartMotionMaxVelocity(TechConstants.kDriveMaxVelocity, 0) == REVLibError.kOk;
 
         leftFront.selectProfileSlot(0, 0);
         rightFront.selectProfileSlot(0, 0);
+        
     }
 
     @Override
-	public void registerEnabledLoops(Looper in) {
-		in.register(mLoop);
-	}
-	
-	public void reportSpeeds() {
-		SmartDashboard.putNumber("left speed", leftFront.get());
-		SmartDashboard.putNumber("right speed", rightFront.get());
+    public void subsystemHome() {
+        leftFront.resetEncoder();
+        rightFront.resetEncoder();
+        mNavXBoard.reset();
+    }
+
+    @Override
+    public void registerEnabledLoops(Looper in) {
+        in.register(mLoop);
+    }
+    
+    public enum DriveControlState {
+        PATH_FOLLOWING,
+        DRIVER_CONTROL,
+        AUTO_AIMING,
+        DISABLED,
+        OPEN_LOOP;
+    }
+
+    @Override
+    public void stop() {
+        // TODO Auto-generated method stub
+        
+    }
+
+
+    @SuppressWarnings("WeakerAccess")
+	public static class PeriodicIO {
+		public double left_driveOpenLoopDemand = 0;
+		public double right_driveOpenLoopDemand = 0;
+
+		public double shooter_guess = 0;
 	}
 
-	public void reportPosition() {
-		SmartDashboard.putNumber("left position", leftFront.getEncoder().getPosition());
-		SmartDashboard.putNumber("right position", rightHind.getEncoder().getPosition());
-	}
 }

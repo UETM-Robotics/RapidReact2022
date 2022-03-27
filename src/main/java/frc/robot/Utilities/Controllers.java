@@ -1,110 +1,121 @@
 package frc.robot.Utilities;
 
+import com.kauailabs.navx.frc.AHRS;
 
 import edu.wpi.first.wpilibj.SPI;
-import frc.robot.Constants;
+import frc.robot.Utilities.Constants.PortConstants;
 import frc.robot.Utilities.Drivers.CANSpeedControllerBuilder;
-import frc.robot.Utilities.Drivers.NavX;
+//import frc.robot.Utilities.Drivers.NavX;
 import frc.robot.Utilities.Drivers.SparkMaxU;
+import frc.robot.Utilities.Drivers.rcinput.ControllerU;
 
 public class Controllers {
 
-    private static Controllers instance = null;
+    private static Controllers instance = new Controllers();
 
     public static Controllers getInstance() {
-        if(instance == null) {
-            instance = new Controllers();
-        }
-
         return instance;
     }
 
     private Controllers() {
 
-        leftDriveFront = CANSpeedControllerBuilder.createFastMasterSparkMax(Constants.PortConstants.frontLeftPort, 0);
-        leftDriveHind = CANSpeedControllerBuilder.createPermanentSlaveSparkMax(Constants.PortConstants.hindLeftPort, leftDriveFront);
+        //Instantiate Drive Motors
+        leftFront = CANSpeedControllerBuilder.createFastMasterSparkMax(PortConstants.leftFrontMotorPort, 0);
+        leftHind = CANSpeedControllerBuilder.createPermanentSlaveSparkMax(PortConstants.leftHindMotorPort, leftFront);
 
-        rightDriveFront = CANSpeedControllerBuilder.createFastMasterSparkMax(Constants.PortConstants.frontRightPort, 0);
-        rightDriveHind = CANSpeedControllerBuilder.createPermanentSlaveSparkMax(Constants.PortConstants.hindRightPort, rightDriveFront);
+        rightFront = CANSpeedControllerBuilder.createFastMasterSparkMax(PortConstants.rightFrontMotorPort, 0);
+        rightHind = CANSpeedControllerBuilder.createPermanentSlaveSparkMax(PortConstants.rightHindMotorPort, rightFront);
 
-        shooterMotor = CANSpeedControllerBuilder.createFastMasterSparkMax(Constants.PortConstants.shooterMotorPort, 0);
+        intakeMotor = CANSpeedControllerBuilder.createFastMasterSparkMax(PortConstants.intakeMotorPort, 0);
 
-        beltTransporterMotor = CANSpeedControllerBuilder.createFastMasterSparkMax(Constants.PortConstants.beltTransporterMotorPort, 0);
+        shooterMotor = CANSpeedControllerBuilder.createFastMasterSparkMax(PortConstants.shooterMotorPort, 0);
+        hoodMotor = CANSpeedControllerBuilder.createFastMasterSparkMax(PortConstants.hoodMotorPort, 0);
+        beltIndexerMotor = CANSpeedControllerBuilder.createFastMasterSparkMax(PortConstants.beltIndexerMotorPort, 0);
 
-        intakeMotor = CANSpeedControllerBuilder.createFastMasterSparkMax(Constants.PortConstants.intakeMotorPort, 0);
 
-        indexerLeft = CANSpeedControllerBuilder.createDefaultSparkMax(Constants.PortConstants.indexerLeftPort, 0);
-        indexerRight = CANSpeedControllerBuilder.createDefaultSparkMax(Constants.PortConstants.indexerRightPort, 0);
+        driverController = new ControllerU(PortConstants.driverControllerPort);
+        operatorController = new ControllerU(PortConstants.operatorControllerPort);
 
-        hoodMotor = CANSpeedControllerBuilder.createFastMasterSparkMax(Constants.PortConstants.hoodMotorPort, 0);
-
-        try {
-            navX = new NavX(SPI.Port.kMXP);
-        } catch (Exception ex) {
-            
-        }
+        //Instantiate Gyro
+        //navX = new NavX(SPI.Port.kMXP);
+        //TODO: Just in case of more gyro funny business
+        navX = new AHRS(SPI.Port.kMXP);
     }
 
-    private SparkMaxU leftDriveFront;
-    private SparkMaxU leftDriveHind;
+    //Drive Motors
+    private final SparkMaxU leftFront, rightFront;
+    private final SparkMaxU leftHind, rightHind;
 
-    private SparkMaxU rightDriveFront;
-    private SparkMaxU rightDriveHind;
+    //Intake Motor
+    private final SparkMaxU intakeMotor;
 
-    private SparkMaxU shooterMotor;
-    private SparkMaxU beltTransporterMotor;
+    //Shooter Motors
+    private final SparkMaxU shooterMotor;
+    private final SparkMaxU hoodMotor;
+    private final SparkMaxU beltIndexerMotor;
 
-    private SparkMaxU intakeMotor;
 
-    private SparkMaxU indexerLeft;
-    private SparkMaxU indexerRight;
+    //Gyro
+    //private final NavX navX;
+    //TODO: Just in case of more gyro funny business
+    private final AHRS navX;
 
-    private SparkMaxU hoodMotor;
 
-    private NavX navX;
+    //Controllers
+    private final ControllerU driverController;
+    private final ControllerU operatorController;
 
-    public SparkMaxU getLeftFrontDrive() {
-        return leftDriveFront;
+    
+    public SparkMaxU getLeftFrontDriveMotor() {
+        return leftFront;
     }
 
-    public SparkMaxU getRightFrontDrive() {
-        return rightDriveFront;
+    public SparkMaxU getRightFrontDriveMotor() {
+        return rightFront;
     }
 
-    public SparkMaxU getLeftHindDrive() {
-        return leftDriveHind;
+    public SparkMaxU getLeftHindDriveMotor() {
+        return leftHind;
     }
 
-    public SparkMaxU getRightHindDrive() {
-        return rightDriveHind;
+    public SparkMaxU getRightHindDriveMotor() {
+        return rightHind;
     }
 
-    public SparkMaxU getShooterMotor() {
-        return shooterMotor;
-    }
-
-    public SparkMaxU getBeltTransporterMotor() {
-        return beltTransporterMotor;
-    }
 
     public SparkMaxU getIntakeMotor() {
         return intakeMotor;
     }
 
-    public SparkMaxU getIndexerLeftMotor() {
-        return indexerLeft;
-    }
 
-    public SparkMaxU getIndexerRightMotor() {
-        return indexerRight;
+    public SparkMaxU getShooterMotor() {
+        return shooterMotor;
     }
 
     public SparkMaxU getHoodMotor() {
         return hoodMotor;
     }
 
-    public NavX getNavX() {
+    public SparkMaxU getBeltIndexerMotor() {
+        return beltIndexerMotor;
+    }
+
+
+    // public NavX getNavX() {
+    //     return navX;
+    // }
+
+    public AHRS getNavX() {
         return navX;
+    }
+
+
+    public ControllerU getDriverController() {
+        return driverController;
+    }
+
+    public ControllerU getOperatorController() {
+        return operatorController;
     }
     
 }

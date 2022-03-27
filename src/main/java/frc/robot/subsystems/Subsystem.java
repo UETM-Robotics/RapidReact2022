@@ -1,6 +1,6 @@
 package frc.robot.subsystems;
 
-import frc.robot.Utilities.Loops.ILooper;
+import frc.robot.Loops.ILooper;
 
 public abstract class Subsystem {
     // Optional design pattern for caching periodic reads to avoid hammering the HAL/CAN.

@@ -1,43 +1,45 @@
 package frc.robot.Actions;
 
 import frc.robot.Actions.Framework.Action;
+import frc.robot.Autonomous.Paths.PathContainer;
+import frc.robot.Utilities.TheoreticallyChadTrajectory.control.Path;
 import frc.robot.subsystems.DriveTrain;
-import frc.robot.Utilities.TrajectoryFollowingMotion.Path;
-import frc.robot.Utilities.TrajectoryFollowingMotion.PathContainer;
 
-/**
- * Drives the robot along the Path defined in the PathContainer object. The action finishes once the robot reaches the
- * end of the path.
- *
- */
 public class DrivePathAction implements Action {
 
     private PathContainer mPathContainer;
     private Path mPath;
-    private DriveTrain mDrive = DriveTrain.getInstance();
+    private DriveTrain dTrain = DriveTrain.getInstance();
+    private boolean mStopWhenDone;
 
-    public DrivePathAction(PathContainer p) {
+    public DrivePathAction(PathContainer p, boolean stopWhenDone) {
         mPathContainer = p;
         mPath = mPathContainer.buildPath();
+        mStopWhenDone = stopWhenDone;
     }
 
-    @Override
-    public boolean isFinished() {
-        return mDrive.isDoneWithPath();
-    }
-
-    @Override
-    public void update() {
-        // Nothing done here, controller updates in mEnabedLooper in robot
-    }
-
-    @Override
-    public void done() {
-
+    public DrivePathAction(PathContainer p) {
+        this(p, false);
     }
 
     @Override
     public void start() {
-        mDrive.setWantDrivePath(mPath, mPathContainer.isReversed());
+        //dTrain.setWantDrivePath(mPath, mPathContainer.isReversed());
+    }
+
+    @Override
+    public void update() {}
+
+    @Override
+    public boolean isFinished() {
+        //return dTrain.isDoneWithPath();
+        return true;
+    }
+
+    @Override
+    public void done() {
+        if (mStopWhenDone) {
+            //dTrain.setVelocity(new DriveSignal(0, 0), new DriveSignal(0, 0));
+        }
     }
 }

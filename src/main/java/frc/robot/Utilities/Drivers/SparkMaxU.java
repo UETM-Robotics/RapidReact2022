@@ -5,7 +5,7 @@ import com.revrobotics.CANSparkMax;
 import com.revrobotics.REVLibError;
 import com.revrobotics.SparkMaxPIDController;
 
-import frc.robot.Utilities.Constants;
+import frc.robot.Utilities.Constants.TechConstants;
 
 public class SparkMaxU extends CANSparkMax{
     private int currentSlectedSlot = 0;
@@ -31,6 +31,14 @@ public class SparkMaxU extends CANSparkMax{
         super.set(outputValue);
     }
 
+    public void resetEncoder() {
+        super.getEncoder().setPosition(0);
+    }
+
+    @Override
+    public REVLibError restoreFactoryDefaults() {
+        return super.restoreFactoryDefaults();
+    }
 
     public REVLibError configClosedloopRamp(double secondsFromNeutralToFull, int timeoutMs) {
         return configClosedloopRamp(secondsFromNeutralToFull, currentSlectedSlot, timeoutMs);
@@ -66,10 +74,10 @@ public class SparkMaxU extends CANSparkMax{
             int retryCounter = 0;
 
             do {
-                setSuceeded = configClosedloopRamp(mCLRampRate[currentSlectedSlot], currentSlectedSlot, Constants.kTimeoutMsFast) == REVLibError.kOk;
-                setSuceeded &= configMotionAcceleration(mSMAccel[currentSlectedSlot], currentSlectedSlot, Constants.kTimeoutMsFast) == REVLibError.kOk;
-                setSuceeded &= configMotionCruiseVlocity(mSMVel[currentSlectedSlot], currentSlectedSlot, Constants.kTimeoutMsFast) == REVLibError.kOk;
-            } while(!setSuceeded && retryCounter++ < Constants.kSparkMaxRetryCount);
+                setSuceeded = configClosedloopRamp(mCLRampRate[currentSlectedSlot], currentSlectedSlot, TechConstants.kTimeoutMsFast) == REVLibError.kOk;
+                setSuceeded &= configMotionAcceleration(mSMAccel[currentSlectedSlot], currentSlectedSlot, TechConstants.kTimeoutMsFast) == REVLibError.kOk;
+                setSuceeded &= configMotionCruiseVlocity(mSMVel[currentSlectedSlot], currentSlectedSlot, TechConstants.kTimeoutMsFast) == REVLibError.kOk;
+            } while(!setSuceeded && retryCounter++ < TechConstants.kSparkMaxRetryCount);
 
         }
     }

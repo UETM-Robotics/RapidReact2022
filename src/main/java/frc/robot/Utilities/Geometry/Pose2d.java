@@ -1,6 +1,6 @@
 package frc.robot.Utilities.Geometry;
 
-import frc.robot.Utilities.TrajectoryFollowingMotion.Util;
+import frc.robot.Utilities.Util;
 
 public class Pose2d implements IPose2d<Pose2d>{
 
@@ -35,6 +35,10 @@ public class Pose2d implements IPose2d<Pose2d>{
         rotation_ = new Rotation2d(other.rotation_);
     }
 
+    public static Pose2d fromWpiLibPose2d( edu.wpi.first.math.geometry.Pose2d pose ) {
+        return new Pose2d( pose.getX(), pose.getX(), Rotation2d.fromDegrees(pose.getRotation().getDegrees()) );
+    }
+
     public static Pose2d fromTranslation(final Translation2d translation) {
         return new Pose2d(translation, new Rotation2d());
     }
@@ -47,20 +51,31 @@ public class Pose2d implements IPose2d<Pose2d>{
      * Obtain a new Pose2d from a (constant curvature) velocity. See:
      * https://github.com/strasdat/Sophus/blob/master/sophus/se2.hpp
      */
-    public static Pose2d exp(final Twist2d delta) {
-        double sin_theta = Math.sin(delta.dtheta);
-        double cos_theta = Math.cos(delta.dtheta);
-        double s, c;
-        if (Math.abs(delta.dtheta) < kEps) {
-            s = 1.0 - 1.0 / 6.0 * delta.dtheta * delta.dtheta;
-            c = .5 * delta.dtheta;
+
+    public Pose2d exp(Twist2d twist) {
+        double dx = twist.dx;
+        double dy = twist.dy;
+        double dtheta = twist.dtheta;
+    
+        double sinTheta = Math.sin(dtheta);
+        double cosTheta = Math.cos(dtheta);
+    
+        double s;
+        double c;
+        if (Math.abs(dtheta) < 1E-9) {
+          s = 1.0 - 1.0 / 6.0 * dtheta * dtheta;
+          c = 0.5 * dtheta;
         } else {
-            s = sin_theta / delta.dtheta;
-            c = (1.0 - cos_theta) / delta.dtheta;
+          s = sinTheta / dtheta;
+          c = (1 - cosTheta) / dtheta;
         }
-        return new Pose2d(new Translation2d(delta.dx * s - delta.dy * c, delta.dx * c + delta.dy * s),
-                new Rotation2d(cos_theta, sin_theta, false));
-    }
+        var transform =
+            new Transform2d(
+                new Translation2d(dx * s - dy * c, dx * c + dy * s),
+                new Rotation2d(cosTheta, sinTheta));
+    
+        return this.plus(transform);
+      }
 
     /**
      * Logical inverse of the above.
@@ -79,6 +94,15 @@ public class Pose2d implements IPose2d<Pose2d>{
                 .rotateBy(new Rotation2d(halftheta_by_tan_of_halfdtheta, -half_dtheta, false));
         return new Twist2d(translation_part.x(), translation_part.y(), dtheta);
     }
+
+    public Transform2d minus(Pose2d other) {
+        final var pose = this.relativeTo(other);
+        return new Transform2d(pose.getTranslation(), pose.getRotation());
+    }
+
+    public Pose2d plus(Transform2d other) {
+        return transformBy(other);
+      }
 
     @Override
     public Translation2d getTranslation() {
@@ -175,7 +199,7 @@ public class Pose2d implements IPose2d<Pose2d>{
             return new Pose2d(other);
         }
         final Twist2d twist = Pose2d.log(inverse().transformBy(other));
-        return transformBy(Pose2d.exp(twist.scaled(x)));
+        return transformBy(this.exp(twist.scaled(x)));
     }
 
     @Override
@@ -199,10 +223,32 @@ public class Pose2d implements IPose2d<Pose2d>{
         return epsilonEquals((Pose2d) other, Util.kEpsilon);
     }
 
+    public Pose2d relativeTo(Pose2d other) {
+        var transform = new Transform2d(other, this);
+        return new Pose2d(transform.getTranslation(), transform.getRotation());
+    }
+
     @Override
     public Pose2d getPose() {
         return this;
     }
+
+    public Pose2d transformBy(Transform2d other) {
+        return new Pose2d(
+            translation_.plus(other.getTranslation().rotateBy(rotation_)),
+            rotation_.plus(other.getRotation())
+        );
+    }
+
+
+    public double x() {
+        return translation_.x();
+    }
+
+    public double y() {
+        return translation_.y();
+    }
+
 
     @Override
     public Pose2d mirror() {

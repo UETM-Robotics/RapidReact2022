@@ -4,28 +4,24 @@
 
 package frc.robot;
 
-
+import java.util.Optional;
 
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.TimedRobot;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.Autonomous.Framework.AutoModeBase;
 import frc.robot.Autonomous.Framework.AutoModeExecuter;
-import frc.robot.Autonomous.Modes.BasicMode;
-import frc.robot.Utilities.Controllers;
-import frc.robot.Utilities.DriveControlState;
-import frc.robot.Utilities.DriveMotorValues;
+import frc.robot.Loops.Looper;
+import frc.robot.Loops.RobotStateEstimator;
 import frc.robot.Utilities.ThreadRateControl;
-import frc.robot.Utilities.Loops.Looper;
-import frc.robot.Utilities.Loops.RobotStateEstimator;
+import frc.robot.Utilities.Geometry.Pose2d;
+import frc.robot.Utilities.Geometry.Rotation2d;
 import frc.robot.subsystems.DriveTrain;
-import frc.robot.subsystems.Indexer;
 import frc.robot.subsystems.Intake;
-import frc.robot.subsystems.Shooter;
-import frc.robot.subsystems.Indexer.IndexerControlMode;
-import frc.robot.subsystems.Shooter.ShooterControlMode;
+import frc.robot.subsystems.Vision;
+import frc.robot.subsystems.DriveTrain.DriveControlState;
+import frc.robot.subsystems.Vision.LedMode;
 
 /**
  * The VM is configured to automatically run this class, and to call the functions corresponding to
@@ -33,20 +29,19 @@ import frc.robot.subsystems.Shooter.ShooterControlMode;
  * the package after creating this project, you must also update the build.gradle file in the
  * project.
  */
+
 public class Robot extends TimedRobot {
   private Command m_autonomousCommand;
 
   private RobotContainer m_robotContainer;
-  
-  private Controllers robotControllers;
 
+  
   private Looper mLooper;
+  private AutoModeSelector mAutoModeSelector = new AutoModeSelector();
   
   private DriveTrain dTrain;
+  private Vision vision;
   private Intake intake;
-  private Shooter shooter;
-  private Indexer indexer;
-
   private RobotStateEstimator robotStateEstimator;
 
   private AutoModeExecuter autoModeExecuter;
@@ -60,42 +55,41 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void robotInit() {
-    
     // Instantiate our RobotContainer.  This will perform all our button bindings, and put our
     // autonomous chooser on the dashboard.
     m_robotContainer = new RobotContainer();
 
-    robotControllers = Controllers.getInstance();
 
     mLooper = new Looper();
 
     dTrain = DriveTrain.getInstance();
+    vision = Vision.getInstance();
     intake = Intake.getInstance();
-    shooter = Shooter.getInstance();
-    indexer = Indexer.getInstance();
 
     dTrain.init();
     dTrain.registerEnabledLoops(mLooper);
 
+    vision.init();
+    vision.registerEnabledLoops(mLooper);
+
     intake.init();
     intake.registerEnabledLoops(mLooper);
-    
-    shooter.init();
-    shooter.registerEnabledLoops(mLooper);
 
-    indexer.init();
-    indexer.registerEnabledLoops(mLooper);
 
     mHidController = HIDController.getInstance();
 
     robotStateEstimator = RobotStateEstimator.getInstance();
     mLooper.register(robotStateEstimator);
 
+    mAutoModeSelector.updateModeCreator();
+
+    vision.setLed(LedMode.OFF);
+
   }
 
   /**
-   * This function is called every robot packet, no matter the mode. Use this for items like
-   * diagnostics that you want ran during disabled, autonomous, teleoperated and test.
+   * This function is called every 20 ms, no matter the mode. Use this for items like diagnostics
+   * that you want ran during disabled, autonomous, teleoperated and test.
    *
    * <p>This runs after the mode specific periodic functions, but before LiveWindow and
    * SmartDashboard integrated updating.
@@ -107,18 +101,35 @@ public class Robot extends TimedRobot {
     // and running subsystem periodic() methods.  This must be called from the robot's periodic
     // block in order for anything in the Command-based framework to work.
     CommandScheduler.getInstance().run();
+
+    mAutoModeSelector.outputToSmartDashboard();
   }
 
   /** This function is called once each time the robot enters Disabled mode. */
   @Override
   public void disabledInit() {
-    
+
     exitAuto();
 
     mLooper.stop();
 
+    mAutoModeSelector.reset();
+    mAutoModeSelector.updateModeCreator();
+    autoModeExecuter = new AutoModeExecuter();
+
     mHidController.stop();
-    
+
+  }
+
+  @Override
+  public void disabledPeriodic() {
+    mAutoModeSelector.updateModeCreator();
+    Optional<AutoModeBase> autoMode = mAutoModeSelector.getAutoMode();
+
+    if (autoMode.isPresent() && autoMode.get() != autoModeExecuter.getAutoMode()) {
+      System.out.println("Set auto mode to: " + autoMode.get().getClass().toString());
+      autoModeExecuter.setAutoMode(autoMode.get());
+    }
   }
 
   /** This autonomous runs the autonomous command selected by your {@link RobotContainer} class. */
@@ -131,19 +142,11 @@ public class Robot extends TimedRobot {
       m_autonomousCommand.schedule();
     }
 
-
     mLooper.start(true);
 		dTrain.setBrakeMode(true);
     dTrain.subsystemHome();
-		autoModeExecuter = new AutoModeExecuter();
+    //pneumatics.setCompressor(true);
 
-		AutoModeBase autoMode = new BasicMode();
-
-
-		if (autoMode != null)
-			autoModeExecuter.setAutoMode(autoMode);
-		else
-			return;
 
 		autoModeExecuter.start();
 		threadRateControl.start(true);
@@ -155,26 +158,20 @@ public class Robot extends TimedRobot {
 
   }
 
+  /** This function is called periodically during autonomous. */
   @Override
-  public void autonomousPeriodic() {
-    SmartDashboard.putNumber("gyro", dTrain.getGyroAngle().getDegrees());
-    // dTrain.setBruh();
-    // SmartDashboard.putNumber("left position", dTrain.leftFront.getEncoder().getPosition());
-    // SmartDashboard.putNumber("right position", dTrain.rightFront.getEncoder().getPosition());
-
-    // SmartDashboard.putNumber("left speed", dTrain.leftFront.getEncoder().getVelocity());
-    // SmartDashboard.putNumber("right speed", dTrain.rightFront.getEncoder().getVelocity());
-  }
+  public void autonomousPeriodic() {}
 
   @Override
   public void teleopInit() {
     // This makes sure that the autonomous stops running when
     // teleop starts running. If you want the autonomous to
     // continue until interrupted by another command, remove
-    // this line or comment it out.p
+    // this line or comment it out.
     if (m_autonomousCommand != null) {
       m_autonomousCommand.cancel();
     }
+
 
     try {
       System.out.println("Beginning TeleOP");
@@ -183,40 +180,59 @@ public class Robot extends TimedRobot {
 
       dTrain.setControlMode(DriveControlState.OPEN_LOOP);
 
-			mLooper.start(true);
-
-			dTrain.setDriveVelocity(DriveMotorValues.NEUTRAL, true);
-			dTrain.setDriveOpenLoop(DriveMotorValues.NEUTRAL);
+      
+			// dTrain.setDriveVelocity(DriveMotorValues.NEUTRAL, true);
+			// dTrain.setDriveOpenLoop(DriveMotorValues.NEUTRAL);
 			dTrain.setBrakeMode(false);
+      
+
+      //TODO: ONLY FOR DEBUGGING
+      robotStateEstimator.resetOdometry( new Pose2d(4, 4.1, Rotation2d.fromDegrees(-90)) );
+
+      
 			mHidController.start();
 
-      dTrain.setControlMode(DriveControlState.OPEN_LOOP);
-      shooter.setShooterControlMode(ShooterControlMode.DISABLED);
-      indexer.setIndexerControlMode(IndexerControlMode.DISABLED);
+      dTrain.setControlMode(DriveControlState.DRIVER_CONTROL);
+      // shooter.setShooterControlMode(ShooterControlMode.DISABLED);
+      // shooter.setShooterVelocity(-3100);
+      // shooter.setTopRollerVelocity(-3100);
+
+      // indexer.setIndexerControlMode(IndexerControlMode.DISABLED);
+
+      // pneumatics.setCompressor(true);
+
+      mLooper.start(true);
+
 
 		} catch (Throwable t) {
       DriverStation.reportError("Fatal Error Initializing Teleop", true);
 			throw t;
 		}
-    
-    CommandScheduler.getInstance().cancelAll();
+
   }
-  
+
+  /** This function is called periodically during operator control. */
+  @Override
+  public void teleopPeriodic() {}
+
+
   @Override
   public void testInit() {
     // Cancels all running commands at the start of test mode.
     CommandScheduler.getInstance().cancelAll();
-
   }
 
   /** This function is called periodically during test mode. */
-
-  
-
   @Override
-  public void testPeriodic() {
-  }
+  public void testPeriodic() {}
 
+  /** This function is called once when the robot is first started up. */
+  @Override
+  public void simulationInit() {}
+
+  /** This function is called periodically whilst in simulation. */
+  @Override
+  public void simulationPeriodic() {}
 
 
   private void exitAuto() {

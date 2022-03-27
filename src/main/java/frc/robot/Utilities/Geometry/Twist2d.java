@@ -1,6 +1,6 @@
 package frc.robot.Utilities.Geometry;
 
-import frc.robot.Utilities.TrajectoryFollowingMotion.Util;
+import frc.robot.Utilities.Util;
 
 /**
  * A movement along an arc at constant curvature and velocity. We can use ideas from "differential calculus" to create
@@ -23,6 +23,10 @@ public class Twist2d {
         this.dx = dx;
         this.dy = dy;
         this.dtheta = dtheta;
+    }
+
+    public static Twist2d fromUtility(Twist2d twist2d) {
+        return new Twist2d(twist2d.dx, twist2d.dy, twist2d.dtheta);
     }
 
     public double norm() {

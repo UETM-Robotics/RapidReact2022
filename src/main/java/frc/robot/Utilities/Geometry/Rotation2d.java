@@ -2,9 +2,11 @@ package frc.robot.Utilities.Geometry;
 
 import java.text.DecimalFormat;
 
-import frc.robot.Utilities.TrajectoryFollowingMotion.Interpolable;
+import frc.robot.Utilities.Interpolable;
 
-import static frc.robot.Utilities.TrajectoryFollowingMotion.Util.epsilonEquals;
+//import static frc.robot.Utilities.TrajectoryFollowingMotion.Util.epsilonEquals;
+
+import static frc.robot.Utilities.Util.epsilonEquals;
 
 /**
  * A rotation in a 2d coordinate frame represented a point on the unit circle (cosine and sine).
@@ -34,6 +36,17 @@ public class Rotation2d implements Interpolable<Rotation2d> {
             normalize();
         }
     }
+
+    public Rotation2d(double x, double y) {
+        double magnitude = Math.hypot(x, y);
+        if (magnitude > 1e-6) {
+          sin_angle_ = y / magnitude;
+          cos_angle_ = x / magnitude;
+        } else {
+          sin_angle_ = 0.0;
+          cos_angle_ = 1.0;
+        }
+      }
 
     public Rotation2d(Rotation2d other) {
         cos_angle_ = other.cos_angle_;
@@ -137,6 +150,22 @@ public class Rotation2d implements Interpolable<Rotation2d> {
         double angle_diff = inverse().rotateBy(other).getRadians();
         return this.rotateBy(Rotation2d.fromRadians(angle_diff * x));
     }
+
+    public Rotation2d unaryMinus() {
+        return Rotation2d.fromDegrees(-getDegrees());
+    }
+
+    public Rotation2d minus(Rotation2d other) {
+        return rotateBy(other.unaryMinus());
+    }
+
+    public Rotation2d times(double scalar) {
+        return Rotation2d.fromDegrees(getDegrees() * scalar);
+    }
+
+    public Rotation2d plus(Rotation2d other) {
+        return rotateBy(other);
+      }
 
     @Override
     public String toString() {

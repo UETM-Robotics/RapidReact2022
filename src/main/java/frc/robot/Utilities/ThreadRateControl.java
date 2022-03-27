@@ -1,7 +1,7 @@
 package frc.robot.Utilities;
 
 import edu.wpi.first.wpilibj.Timer;
-import frc.robot.Utilities.TrajectoryFollowingMotion.MovingAverage;
+//import frc.robot.Utilities.MovingAverage;
 
 public class ThreadRateControl {
 	private double startTime;

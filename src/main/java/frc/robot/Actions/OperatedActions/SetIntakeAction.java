@@ -1,32 +1,37 @@
 package frc.robot.Actions.OperatedActions;
 
-import java.util.function.Supplier;
-
 import frc.robot.Actions.Framework.Action;
 import frc.robot.subsystems.Intake;
+import frc.robot.subsystems.Intake.IntakeControlMode;
+
+import java.util.function.Supplier;
 
 public class SetIntakeAction implements Action {
 
-    private static final Intake intake = Intake.getInstance();
-
     private final Supplier<Boolean> mButtonGetterMethod;
-	private final Intake.ControlMode mControlMode;
+    private final Intake intake;
+
+    private final IntakeControlMode mControlMode;
 
     public SetIntakeAction(boolean reverse, Supplier<Boolean> buttonGetterMethod) {
-		mButtonGetterMethod = buttonGetterMethod;
-		mControlMode = reverse ? Intake.ControlMode.REVERSE : Intake.ControlMode.ENABLED;
 
-        if(reverse) {
+        intake = Intake.getInstance();
+
+        mButtonGetterMethod = buttonGetterMethod;
+
+        mControlMode = reverse ? IntakeControlMode.REVERSE : IntakeControlMode.ENABLED;
+
+        if(reverse) 
             intake.prepareToEject();
-        } else {
+        else
             intake.revert();
-        }
-	}
+    }
 
     @Override
-	public boolean isFinished() {
-		return (!mButtonGetterMethod.get());
-	}
+    public boolean isFinished() {
+        // TODO Auto-generated method stub
+        return (!mButtonGetterMethod.get());
+    }
 
     @Override
     public void update() {
@@ -36,14 +41,17 @@ public class SetIntakeAction implements Action {
 
     @Override
     public void done() {
-        intake.setControlMode(Intake.ControlMode.DISABLED);
+        
+        intake.setControlMode(IntakeControlMode.DISABLED);
+        
     }
 
     @Override
     public void start() {
+
         intake.setControlMode(mControlMode);
+
     }
-
-
     
 }
+

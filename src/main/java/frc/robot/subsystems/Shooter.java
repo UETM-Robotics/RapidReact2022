@@ -1,6 +1,5 @@
 package frc.robot.subsystems;
 
-import java.net.http.HttpClient.Redirect;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.revrobotics.REVLibError;
@@ -8,123 +7,168 @@ import com.revrobotics.CANSparkMax.ControlType;
 import com.revrobotics.CANSparkMax.IdleMode;
 
 import edu.wpi.first.wpilibj.DriverStation;
+import frc.robot.Loops.Loop;
+import frc.robot.Loops.Looper;
 import frc.robot.Utilities.Controllers;
 import frc.robot.Utilities.CustomSubsystem;
-import frc.robot.Utilities.ElapsedTimer;
+import frc.robot.Utilities.Constants.TechConstants;
 import frc.robot.Utilities.Drivers.SparkHelper;
 import frc.robot.Utilities.Drivers.SparkMaxU;
-import frc.robot.Utilities.Geometry.Pose2d;
-import frc.robot.Utilities.Geometry.Rotation2d;
-import frc.robot.Utilities.Loops.Loop;
-import frc.robot.Utilities.Loops.Looper;
-import frc.robot.RobotState;
-import frc.robot.Utilities.Constants;
 
 public class Shooter extends Subsystem implements CustomSubsystem {
 
-
-    private static Shooter instance = new Shooter();
-
+    private static final Shooter instance = new Shooter();
     private static ReentrantLock _subsystemMutex = new ReentrantLock();
-
-    private Controllers controllers = Controllers.getInstance();
 
     public static Shooter getInstance() {
         return instance;
     }
 
-    private final SparkMaxU shooterMotor;
-    private final SparkMaxU hoodMotor;
-
-    private ShooterControlMode mShooterControlMode = ShooterControlMode.SMART_VELOCITY;
-
-    private PeriodicIO mPeriodicIO;
-
-    private final ElapsedTimer loopTimer = new ElapsedTimer();
-	private final ElapsedTimer shooter_dt = new ElapsedTimer();
-
     private Shooter() {
-
-        shooterMotor = controllers.getShooterMotor();
-        hoodMotor = controllers.getHoodMotor();
+        shooterMotor = Controllers.getInstance().getShooterMotor();
+        hoodMotor = Controllers.getInstance().getHoodMotor();
+        beltIndexerMotor = Controllers.getInstance().getBeltIndexerMotor();
 
         mPeriodicIO = new PeriodicIO();
-
     }
+
+
+    private final SparkMaxU shooterMotor;
+    private final SparkMaxU hoodMotor;
+    private final SparkMaxU beltIndexerMotor;
+
+    private ShooterControlMode mShooterControlMode = ShooterControlMode.DISABLED;
+    private HoodControlMode mHoodControlMode = HoodControlMode.DISABLED;
+    private BeltIndexerControlMode mBeltIndexerControlMode = BeltIndexerControlMode.DISABLED;
+
+
+    private PeriodicIO mPeriodicIO;
     
-    public void hood(){
-        hoodMotor.set(0.5);
-    }
 
-
-    Loop mloop = new Loop() {
+    private final Loop mLoop = new Loop() {
 
         @Override
         public void onFirstStart(double timestamp) {
-            synchronized(Shooter.this) {
-                zeroSensors();
-            }
+            // TODO Auto-generated method stub
+            
         }
 
         @Override
         public void onStart(double timestamp) {
-            synchronized(Shooter.this) {
-                shooter_dt.start();
-            }
+            subsystemHome();
         }
 
         @Override
         public void onLoop(double timestamp, boolean isAuto) {
-            loopTimer.start();
-            
-            synchronized(Shooter.this) {
+            synchronized (Shooter.this) {
 
                 switch(mShooterControlMode) {
                     case DISABLED:
+
                         shooterMotor.set(0);
+
+                        break;
+                    case INTERPOLATING:
+
+                        shooterMotor.set( interpolateShooter(), ControlType.kSmartVelocity );
+
                         break;
                     case OPEN_LOOP:
+
                         shooterMotor.set( Math.min(Math.max(mPeriodicIO.shooter_setpoint_rpm, -1), 1));
-                        break;
-                    case SMART_VELOCITY:
-                        shooterMotor.set(mPeriodicIO.shooter_setpoint_rpm, ControlType.kSmartVelocity);  
+
                         break;
                     case VELOCITY:
-                        shooterMotor.set(mPeriodicIO.shooter_setpoint_rpm, ControlType.kVelocity);
+
+                        shooterMotor.set(mPeriodicIO.shooter_setpoint_rpm, ControlType.kSmartVelocity);
+
                         break;
                     default:
                         shooterMotor.set(0);
-                        DriverStation.reportError("Anomaly occurred setting shooter power", false);
+                        DriverStation.reportError("Anomaly in setting Shooter Control Mode", true);
                         break;
 
                 }
 
-            }            
-            
+                switch(mHoodControlMode) {
+                    case DISABLED:
+                    
+                        hoodMotor.set(0);
+
+                        break;
+                    case INTERPOLATING:
+
+                        hoodMotor.set( interpolateHood(), ControlType.kSmartMotion );
+
+                        break;
+                    case OPEN_LOOP:
+
+                        hoodMotor.set( Math.min(Math.max(mPeriodicIO.hood_position_rotations, -1), 1));
+
+                        break;
+                    default:
+                        hoodMotor.set(0);
+                        DriverStation.reportError("Anomaly in setting Hood Control Mode", true);
+                        break;
+                }
+
+                switch(mBeltIndexerControlMode) {
+                    case DISABLED:
+
+                        beltIndexerMotor.set(0);
+
+                        break;
+                    case ENABLED:
+
+                        beltIndexerMotor.set(0.8);
+
+                        break;
+                    case SELF_AWARE:
+                        break;
+                    default:
+                        beltIndexerMotor.set(0);
+                        DriverStation.reportError("Anomaly in setting Belt Indexer Control Mode", true);
+                        break;
+
+                }
+
+            }
         }
 
         @Override
         public void onStop(double timestamp) {
-            stop();
+            // TODO Auto-generated method stub
+            
         }
         
     };
 
-    public synchronized void setShooterVelocity(double shooterVelocity) {
-		mPeriodicIO.shooter_setpoint_rpm = shooterVelocity;
-	}
 
-    public void setShooterVelocityChango(double shooterVelocity) {
-        shooterMotor.set(ControlType.kVelocity, shooterVelocity, 0);
-        //shooterMotor.set(shooterVelocity);
+    private synchronized double interpolateShooter() {
+        return 0;
     }
 
-    public double getvel() {
+    private synchronized double interpolateHood() {
+        return 0;
+    }
+
+
+    public synchronized void setShooterVelocitySetpoint(double shooterVelocity) {
+        mPeriodicIO.shooter_setpoint_rpm = shooterVelocity;
+    }
+
+    public synchronized double getShooterVelocitySetpoint() {
+        return mPeriodicIO.shooter_setpoint_rpm;
+    }
+
+    public synchronized double getShooterVelocity() {
         return shooterMotor.getEncoder().getVelocity();
     }
 
-    public synchronized void setShooterControlMode( ShooterControlMode controlMode ) {
 
+
+
+    public synchronized void setShooterControlMode(ShooterControlMode controlMode) {
         if (controlMode != mShooterControlMode) {
 			try {
 				_subsystemMutex.lock();
@@ -134,30 +178,49 @@ public class Shooter extends Subsystem implements CustomSubsystem {
                 
 			}
 		}
-
     }
 
-    public Pose2d getLatestFieldToTurretPose() {
-		return RobotState.getInstance().getLatestFieldToVehicle().getValue().transformBy(getLatestVehicleToTurretPose());
-	}
+    public synchronized void setHoodControlMode(HoodControlMode controlMode) {
+        if (controlMode != mHoodControlMode) {
+			try {
+				_subsystemMutex.lock();
+				mHoodControlMode = controlMode;
+				_subsystemMutex.unlock();
+			} catch (Exception ex) {
+                
+			}
+		}
+    }
 
-    public Pose2d getLatestVehicleToTurretPose() {
-		return new Pose2d(Constants.kVehicleToTurret.getTranslation(),
-							Rotation2d.fromDegrees(0));
-	}
+    public synchronized void setBeltIndexerControlMode(BeltIndexerControlMode controlMode) {
+        if (controlMode != mBeltIndexerControlMode) {
+			try {
+				_subsystemMutex.lock();
+				mBeltIndexerControlMode = controlMode;
+				_subsystemMutex.unlock();
+			} catch (Exception ex) {
+                
+			}
+		}
+    }
 
 
     @Override
     public void init() {
         
         shooterMotor.setIdleMode(IdleMode.kCoast);
-        shooterMotor.setOpenLoopRampRate(0.2);
-        shooterMotor.setSmartCurrentLimit(70);
-
         hoodMotor.setIdleMode(IdleMode.kBrake);
-        hoodMotor.setOpenLoopRampRate(0.15);
-        hoodMotor.setSmartCurrentLimit(45);
-        
+        beltIndexerMotor.setIdleMode(IdleMode.kCoast);
+
+        shooterMotor.setSmartCurrentLimit(60);
+        shooterMotor.setOpenLoopRampRate(0.2);
+
+        hoodMotor.setSmartCurrentLimit(30);
+        hoodMotor.setOpenLoopRampRate(0.2);
+
+        beltIndexerMotor.setSmartCurrentLimit(30);
+        beltIndexerMotor.setOpenLoopRampRate(0.2);
+
 
         int retryCounter = 0;
         boolean setSucceeded;
@@ -167,23 +230,22 @@ public class Shooter extends Subsystem implements CustomSubsystem {
             setSucceeded = true;
 
             setSucceeded &= shooterMotor.getEncoder().setMeasurementPeriod(10) == REVLibError.kOk;
-            setSucceeded &= shooterMotor.getEncoder().setMeasurementPeriod(10) == REVLibError.kOk;
+            setSucceeded &= hoodMotor.getEncoder().setMeasurementPeriod(10) == REVLibError.kOk;
 
-            setSucceeded &= SparkHelper.setPIDGains(hoodMotor, 0, Constants.kHoodVelocityKp, Constants.kHoodVelocityKi, Constants.kHoodVelocityKd, Constants.kHoodVelocityKf, Constants.kHoodVelocityClosedLoopRampRate, Constants.kHoodVelocityIZone);
-            setSucceeded &= hoodMotor.getPIDController().setSmartMotionAccelStrategy(Constants.kHoodAccelStrategy, 0) == REVLibError.kOk;
-            setSucceeded &= hoodMotor.getPIDController().setSmartMotionMaxVelocity(Constants.kHoodMaxVelocity, 0) == REVLibError.kOk;
+            setSucceeded &= SparkHelper.setPIDGains(hoodMotor, 0, TechConstants.kHoodVelocityKp, TechConstants.kHoodVelocityKi, TechConstants.kHoodVelocityKd, TechConstants.kHoodVelocityKf, TechConstants.kHoodVelocityClosedLoopRampRate, TechConstants.kHoodVelocityIZone);
+            setSucceeded &= hoodMotor.getPIDController().setSmartMotionAccelStrategy(TechConstants.kHoodAccelStrategy, 0) == REVLibError.kOk;
+            setSucceeded &= hoodMotor.getPIDController().setSmartMotionMaxVelocity(TechConstants.kHoodMaxVelocity, 0) == REVLibError.kOk;
+            setSucceeded &= hoodMotor.getPIDController().setSmartMotionMaxAccel(TechConstants.kHoodMaxAccel, 0) == REVLibError.kOk;
+            setSucceeded &= hoodMotor.getPIDController().setSmartMotionAllowedClosedLoopError(TechConstants.kHoodSmartMotionAllowedClosedLoopError, 0) == REVLibError.kOk;
 
-            setSucceeded &= SparkHelper.setPIDGains(shooterMotor, 0, Constants.kShooterVelocityKp, Constants.kShooterVelocityKi, Constants.kShooterVelocityKd, Constants.kShooterVelocityKf, Constants.kShooterVelocityClosedLoopRampRate, Constants.kShooterVelocityIZone);
-            setSucceeded &= shooterMotor.getPIDController().setSmartMotionAccelStrategy(Constants.kShooterAccelStrategy, 0) == REVLibError.kOk;
-            setSucceeded &= shooterMotor.getPIDController().setSmartMotionMaxVelocity(Constants.kShooterMaxVelocity, 0) == REVLibError.kOk;
-            setSucceeded &= shooterMotor.getPIDController().setSmartMotionMaxAccel(Constants.kShooterMaxAccel, 0) == REVLibError.kOk;
+            setSucceeded &= SparkHelper.setPIDGains(shooterMotor, 0, TechConstants.kShooterVelocityKp, TechConstants.kShooterVelocityKi, TechConstants.kShooterVelocityKd, TechConstants.kShooterVelocityKf, TechConstants.kShooterVelocityClosedLoopRampRate, TechConstants.kShooterVelocityIZone);
+            setSucceeded &= shooterMotor.getPIDController().setSmartMotionAccelStrategy(TechConstants.kShooterAccelStrategy, 0) == REVLibError.kOk;
+            setSucceeded &= shooterMotor.getPIDController().setSmartMotionMaxVelocity(TechConstants.kShooterMaxVelocity, 0) == REVLibError.kOk;
+            setSucceeded &= shooterMotor.getPIDController().setSmartMotionMaxAccel(TechConstants.kShooterMaxAccel, 0) == REVLibError.kOk;
 
             
         } while(retryCounter++ < 3 && !setSucceeded);
 
-        if(retryCounter == 3) {
-            DriverStation.reportError("Error Initializing Shooter", false);
-        }
     }
 
     @Override
@@ -194,20 +256,22 @@ public class Shooter extends Subsystem implements CustomSubsystem {
 
     @Override
     public void registerEnabledLoops(Looper in) {
-        in.register(mloop);
+        in.register(mLoop);
     }
 
     @Override
     public void stop() {
-        shooterMotor.set(0);
+        // TODO Auto-generated method stub
+        
     }
 
 
     @SuppressWarnings("WeakerAccess")
 	public static class PeriodicIO {
 
-		public double shooter_velocity_rpm = 0;
 		public double shooter_setpoint_rpm = 0;
+
+        public double hood_position_rotations = 0;
 
 		// Outputs
 		public double shooter_loop_time = 0;
@@ -215,15 +279,22 @@ public class Shooter extends Subsystem implements CustomSubsystem {
     
 
     public enum ShooterControlMode {
-		OPEN_LOOP,
-		VELOCITY,
-        SMART_VELOCITY,
-		DISABLED;
-	}
+        INTERPOLATING,
+        OPEN_LOOP,
+        VELOCITY,
+        DISABLED;
+    }
 
     public enum HoodControlMode {
-		OPEN_LOOP,
-		POSITION,
-		DISABLED;
-	}
+        INTERPOLATING,
+        OPEN_LOOP,
+        DISABLED;
+    }
+
+    public enum BeltIndexerControlMode {
+        SELF_AWARE,
+        ENABLED,
+        DISABLED;
+    }
+
 }

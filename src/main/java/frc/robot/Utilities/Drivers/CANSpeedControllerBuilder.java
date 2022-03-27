@@ -5,7 +5,7 @@ import com.revrobotics.REVLibError;
 import com.revrobotics.CANSparkMax.IdleMode;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 
-import frc.robot.Utilities.Constants;
+import frc.robot.Utilities.Constants.TechConstants;
 
 
 public class CANSpeedControllerBuilder {
@@ -110,7 +110,7 @@ public class CANSpeedControllerBuilder {
 
             spark.setControlFramePeriodMs(config.CONTROL_FRAME_PERIOD_MS);
 
-        } while(!setSucceeded && retryCounter++ < Constants.kSparkMaxRetryCount);
+        } while(!setSucceeded && retryCounter++ < TechConstants.kSparkMaxRetryCount);
 
         return setSucceeded;
     }
