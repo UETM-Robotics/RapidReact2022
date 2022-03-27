@@ -2,6 +2,7 @@ package frc.robot.Actions;
 
 import java.util.function.Supplier;
 
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Actions.Framework.Action;
 import frc.robot.Utilities.Constants.TechConstants;
 import frc.robot.subsystems.Shooter;
@@ -13,8 +14,14 @@ public class SetShooterAction implements Action {
 
     private final boolean mIsAuto;
     private final int balls_to_shoot;
-    private int ballsShot = 0;
+
+    private static final Shooter shooter = Shooter.getInstance();
+    
     private final Supplier<Boolean> mButtonGetterMethod;
+
+    private int ballsShot = 0;
+    private boolean triggerArmed = false;
+    private boolean triggerFired = false;
 
     public SetShooterAction(boolean isAuto, int ballsToShoot) {
 
@@ -43,27 +50,51 @@ public class SetShooterAction implements Action {
     @Override
     public void update() {
         
-        if(Shooter.getInstance().getShooterVelocity() > Shooter.getInstance().getShooterVelocitySetpoint() * TechConstants.kShooterArmVelocityPercentage && mIsAuto) {
-            Shooter.getInstance().setBeltIndexerControlMode(BeltIndexerControlMode.ENABLED);
+        if(mIsAuto) {
+
+            triggerArmed = shooter.getShooterVelocity() > shooter.getShooterVelocitySetpoint() * TechConstants.kShooterArmVelocityPercentage;
+            
+
+            if(triggerArmed) {
+
+                shooter.setBeltIndexerControlMode(BeltIndexerControlMode.ENABLED);
+                triggerFired = shooter.getShooterVelocity() < shooter.getShooterVelocitySetpoint() * TechConstants.kShooterTriggerVelocityPercentage;
+                
+                if(triggerFired) {
+                    SmartDashboard.putString("Trigger Status", "FIRED");
+                    shooter.setBeltIndexerControlMode(BeltIndexerControlMode.DISABLED);
+                    ballsShot++;
+                } else {
+                    SmartDashboard.putString("Trigger Status", "ARMED");
+                }
+
+            } else {
+                SmartDashboard.putString("Trigger Status", "DISARMED");
+            }
         }
+        
     }
 
     @Override
     public void done() {
-        // TODO Auto-generated method stub
-        
+        shooter.setShooterControlMode(ShooterControlMode.DISABLED);
+        shooter.setHoodControlMode(HoodControlMode.DISABLED);
+        shooter.setBeltIndexerControlMode(BeltIndexerControlMode.DISABLED);
     }
 
     @Override
     public void start() {
 
-        Shooter.getInstance().setShooterControlMode(ShooterControlMode.INTERPOLATING);
-        Shooter.getInstance().setHoodControlMode(HoodControlMode.INTERPOLATING);
+        //TODO: commented out for debugging
+        // shooter.setShooterControlMode(ShooterControlMode.INTERPOLATING);
+        // shooter.setHoodControlMode(HoodControlMode.INTERPOLATING);
 
-        Shooter.getInstance().setShooterControlMode(ShooterControlMode.VELOCITY);
+        shooter.setShooterControlMode(ShooterControlMode.VELOCITY);
 
 
-        Shooter.getInstance().setShooterVelocitySetpoint(3500);
+        //TODO: USE THESE VALUES TO GENERATE POLYNOMIAL REGRESSION
+        shooter.setShooterVelocitySetpoint(3500);
+        shooter.setHoodPositionSetpoint(0);
     }
 
 
