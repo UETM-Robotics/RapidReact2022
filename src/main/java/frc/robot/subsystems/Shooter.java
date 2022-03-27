@@ -101,6 +101,11 @@ public class Shooter extends Subsystem implements CustomSubsystem {
                         hoodMotor.set( interpolateHood(), ControlType.kSmartMotion );
 
                         break;
+                    case POSITION:
+
+                        hoodMotor.set(mPeriodicIO.hood_position_rotations, ControlType.kSmartMotion);
+
+                        break;
                     case OPEN_LOOP:
 
                         hoodMotor.set( Math.min(Math.max(mPeriodicIO.hood_position_rotations, -1), 1));
@@ -166,6 +171,9 @@ public class Shooter extends Subsystem implements CustomSubsystem {
     }
 
 
+    public synchronized void setHoodPositionSetpoint(double hoodPosition) {
+        mPeriodicIO.hood_position_rotations = hoodPosition;
+    }
 
 
     public synchronized void setShooterControlMode(ShooterControlMode controlMode) {
@@ -288,6 +296,7 @@ public class Shooter extends Subsystem implements CustomSubsystem {
     public enum HoodControlMode {
         INTERPOLATING,
         OPEN_LOOP,
+        POSITION,
         DISABLED;
     }
 
