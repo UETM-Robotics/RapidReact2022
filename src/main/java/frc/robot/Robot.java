@@ -12,6 +12,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.Autonomous.Framework.AutoModeBase;
 import frc.robot.Autonomous.Framework.AutoModeExecuter;
+import frc.robot.Autonomous.Modes.Test.Test;
 import frc.robot.Loops.Looper;
 import frc.robot.Loops.RobotStateEstimator;
 import frc.robot.Utilities.ThreadRateControl;
@@ -147,6 +148,7 @@ public class Robot extends TimedRobot {
     dTrain.subsystemHome();
     //pneumatics.setCompressor(true);
 
+    autoModeExecuter.setAutoMode(new Test());
 
 		autoModeExecuter.start();
 		threadRateControl.start(true);
@@ -187,7 +189,7 @@ public class Robot extends TimedRobot {
       
 
       //TODO: ONLY FOR DEBUGGING
-      robotStateEstimator.resetOdometry( new Pose2d(4, 4.1, Rotation2d.fromDegrees(-90)) );
+      robotStateEstimator.resetOdometry( new Pose2d(0, 0, Rotation2d.fromDegrees(-90)) );
 
       
 			mHidController.start();
