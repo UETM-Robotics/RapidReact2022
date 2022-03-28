@@ -22,9 +22,10 @@ public final class PortConstants {
 
     public static final int intakeMotorPort = 10;
 
-    public static final int shooterMotorPort = 0;
-    public static final int hoodMotorPort = 0;
-    public static final int beltIndexerMotorPort = 0;
+    //TODO: These are gonna need to be updated
+    public static final int shooterMotorPort = 5;
+    public static final int hoodMotorPort = 6;
+    public static final int beltIndexerMotorPort = 7;
 
 
     public static final int driverControllerPort = 0;
