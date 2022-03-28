@@ -206,14 +206,13 @@ public class HIDController {
 		//Logger
 		mControlFunctions.add( () -> {
 
-			SmartDashboard.putNumber("Left Distance Driven", DriveTrain.getInstance().getLeftDistanceMeters());
-			SmartDashboard.putNumber("Right Distance Driven", DriveTrain.getInstance().getRightDistanceMeters());
-			SmartDashboard.putNumber("DriveTrain Rotation", DriveTrain.getInstance().getRotation().getDegrees());
+			// SmartDashboard.putNumber("Left Distance Driven", DriveTrain.getInstance().getLeftDistanceMeters());
+			// SmartDashboard.putNumber("Right Distance Driven", DriveTrain.getInstance().getRightDistanceMeters());
+			// SmartDashboard.putNumber("DriveTrain Rotation", DriveTrain.getInstance().getRotation().getDegrees());
 
-			SmartDashboard.putNumber("Robot Position X", RobotState.getInstance().getFieldToVehicleInches(0).x());
-			SmartDashboard.putNumber("Robot Position Y", RobotState.getInstance().getFieldToVehicleInches(0).y());
-			SmartDashboard.putNumber("Robot Heading", RobotState.getInstance().getFieldToVehicleInches(0).getRotation().getDegrees());
 
+			
+			SmartDashboard.putNumber("Robots guessed angle", DriveTrain.getInstance().getHubAimingGuess());
 
 			return true;
 		});
