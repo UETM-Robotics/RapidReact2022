@@ -9,6 +9,7 @@ import com.revrobotics.CANSparkMax.IdleMode;
 
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import frc.robot.RobotState;
 import frc.robot.Loops.Loop;
 import frc.robot.Loops.Looper;
 import frc.robot.Utilities.Controllers;
@@ -98,6 +99,10 @@ public class DriveTrain extends Subsystem implements CustomSubsystem {
         @Override
         public void onLoop(double timestamp, boolean isAuto) {
             synchronized(DriveTrain.this) {
+
+                SmartDashboard.putNumber("Robot Position X", RobotState.getInstance().getFieldToVehicleMeters().x());
+                SmartDashboard.putNumber("Robot Position Y", RobotState.getInstance().getFieldToVehicleMeters().y());
+                SmartDashboard.putNumber("Robot Heading", RobotState.getInstance().getFieldToVehicleMeters().getRotation().getDegrees());
 
                 //m_robotPose = m_odometry.update(getRotation(), getLeftDistanceMeters(), getRightDistanceMeters());
                
@@ -189,8 +194,16 @@ public class DriveTrain extends Subsystem implements CustomSubsystem {
         final double max_desired = Math.max(Math.abs(d.getLeft()), Math.abs(d.getRight()));
 		final double scale = max_desired > TechConstants.kDriveMaxVelocity ? TechConstants.kDriveMaxVelocity / max_desired : 1.0;
         
-        leftFront.set(d.getLeft() * scale, ControlType.kSmartVelocity);
-        rightFront.set(d.getRight() * scale, ControlType.kSmartVelocity);
+        //leftFront.set(d.getLeft() * scale, ControlType.kSmartVelocity);
+        //rightFront.set(d.getRight() * scale, ControlType.kSmartVelocity);
+
+        //rightFront.set( (d.getRight() * scale) / 4.0 );
+        rightFront.set(d.getRight() / 2.0);
+        leftFront.set(d.getLeft() / 2.0);
+
+
+        SmartDashboard.putNumber("Right Velocity demand", d.getRight());
+        SmartDashboard.putNumber("Left Velocity demand", d.getLeft());
 
     }
 
@@ -254,11 +267,12 @@ public class DriveTrain extends Subsystem implements CustomSubsystem {
     }
 
 
-    private void updateAutoAiming() {
+    private synchronized void updateAutoAiming() {
 
         SmartDashboard.putNumber("Guessed Angle", mHubTargetingAngleGuess);
 
     }
+
 
     public synchronized void setHubAimingGuess(double guess) {
         if (guess != mHubTargetingAngleGuess) {
@@ -270,6 +284,11 @@ public class DriveTrain extends Subsystem implements CustomSubsystem {
                 
 			}
 		}
+
+    }
+
+    public synchronized double getHubAimingGuess() {
+        return mHubTargetingAngleGuess;
     }
 
     public boolean isAimedAtHub() {
