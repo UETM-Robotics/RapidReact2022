@@ -32,7 +32,7 @@ public class RightRightTwoBall extends AutoModeBase {
 
         //Intake.getInstance().setControlMode(IntakeControlMode.ENABLED);
         
-        runAction(new DriveTrajectoryAction(trajectory));
+        //runAction(new DriveTrajectoryAction(trajectory), );
 
         //Intake.getInstance().setControlMode(IntakeControlMode.DISABLED);
 
