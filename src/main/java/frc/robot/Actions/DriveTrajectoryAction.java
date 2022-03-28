@@ -1,13 +1,17 @@
 package frc.robot.Actions;
 
-//import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.RobotState;
 import frc.robot.Actions.Framework.Action;
+import frc.robot.Loops.RobotStateEstimator;
 import frc.robot.Utilities.DriveSignal;
 import frc.robot.Utilities.ElapsedTimer;
+import frc.robot.Utilities.Geometry.Pose2d;
 import frc.robot.Utilities.RamseteTrajectory.RamseteController;
 import frc.robot.Utilities.RamseteTrajectory.Trajectory;
+import frc.robot.Utilities.RamseteTrajectory.Trajectory.State;
 import frc.robot.subsystems.DriveTrain;
+import edu.wpi.first.wpilibj2.command.RamseteCommand;
 
 /**
  * A command that uses a RAMSETE controller ({@link RamseteController}) to follow a trajectory
@@ -49,8 +53,11 @@ public class DriveTrajectoryAction implements Action{
    *
    * @param trajectory The trajectory to follow.
    */
-  public DriveTrajectoryAction(Trajectory trajectory) {
+  public DriveTrajectoryAction(Trajectory trajectory, Pose2d startPose) {
     m_trajectory = trajectory;
+    // drive_.subsystemHome();
+    // RobotStateEstimator.getInstance().resetOdometry( startPose );
+
   }
 
 
@@ -59,7 +66,9 @@ public class DriveTrajectoryAction implements Action{
   public boolean isFinished() {
     //return m_follower.atReference();
     //return m_timer.hasElapsed(m_trajectory.getTotalTimeSeconds());
-    return m_timer.hasElapsed() == m_trajectory.getTotalTimeSeconds();
+
+    return m_timer.hasElapsed() > m_trajectory.getTotalTimeSeconds();
+    //return true;
   }
 
   @Override
@@ -85,6 +94,8 @@ public class DriveTrajectoryAction implements Action{
     drive_.updatePathVelocitySetpoint( new DriveSignal(leftSpeedSetpoint, rightSpeedSetpoint) );
     m_prevTime = curTime;
 
+    SmartDashboard.putNumber("Current Time", m_timer.hasElapsed());
+
   }
 
   @Override
@@ -99,7 +110,18 @@ public class DriveTrajectoryAction implements Action{
   public void start() {
 
     m_prevTime = -1;
-    m_trajectory.sample(0);
+    State s = m_trajectory.sample(m_trajectory.getTotalTimeSeconds());
+
+    
+    SmartDashboard.putNumber("Total Trajectory Time", m_trajectory.getTotalTimeSeconds());
+
+    //SmartDashboard.putNumber("expected ending x position", s.poseMeters.x());
+
+    //SmartDashboard.putNumber("expected starting degrees", s.poseMeters.getRotation().getDegrees());
+    // //SmartDashboard.putNumber("length of trajectory", m_trajectory.getTotalTimeSeconds());
+    // s = m_trajectory.sample(1.4);
+    // SmartDashboard.putNumber("expected mid length degrees", s.poseMeters.getRotation().getDegrees());
+
     //m_timer.reset();
     m_timer.start();
 

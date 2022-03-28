@@ -12,7 +12,6 @@ import frc.robot.Utilities.Geometry.Pose2d;
 import frc.robot.Utilities.Geometry.Rotation2d;
 import frc.robot.Utilities.Geometry.Translation2d;
 import frc.robot.Utilities.RamseteTrajectory.DifferentialDriveKinematics;
-import frc.robot.Utilities.RamseteTrajectory.DifferentialDriveOdometry;
 import frc.robot.Utilities.RamseteTrajectory.DifferentialDriveWheelSpeeds;
 import frc.robot.Utilities.RamseteTrajectory.Trajectory.State;
 import frc.robot.subsystems.Vision;
@@ -29,6 +28,7 @@ public class RobotState {
     List<Translation2d> mCameraToVisionTargetPoses = new ArrayList<>();
 
     private Pose2d mCurrentPose = new Pose2d(0, 0, Rotation2d.fromDegrees(0));
+    private Pose2d initialPose = new Pose2d(0, 0, Rotation2d.fromDegrees(0));
 
     //TODO: DETERMINE VEHICLE TO SHOOTER POSE
     //private Pose2d vehicle_to_shooter_ = new Pose2d(new Translation2d(), Rotation2d.fromDegrees(0)); //shooter w.r.t. robot
@@ -64,7 +64,18 @@ public class RobotState {
 
 
     public synchronized void updateFieldToRobotPose( Pose2d pose ) {
-        mCurrentPose = pose;
+
+     mCurrentPose = pose.relativeTo(initialPose);
+
+    //  mCurrentPose = new Pose2d(pose.x() + initialPose.x(), 
+    //                             pose.y() + initialPose.y(), 
+    //                             Rotation2d.fromDegrees(pose.getRotation().getDegrees() + initialPose.getRotation().getDegrees()));
+
+        //mCurrentPose = pose;
+    }
+
+    public synchronized void setInitialPose(Pose2d pose) {
+        initialPose = new Pose2d(pose.x(), pose.y(), Rotation2d.fromDegrees(pose.getRotation().getDegrees()));
     }
 
 
@@ -72,12 +83,12 @@ public class RobotState {
         return mCurrentPose;
     }
 
-    public synchronized Pose2d getFieldToVehicleInches(double timestamp) {
+    public synchronized Pose2d getFieldToVehicleInches() {
         return new Pose2d(Units.metersToInches(mCurrentPose.x()), Units.metersToInches(mCurrentPose.y()), mCurrentPose.getRotation());
     }
 
     public synchronized Pose2d getFieldToShooter(double timestamp) {
-        return getFieldToVehicleInches(timestamp).transformBy(Pose2d.fromRotation(Rotation2d.fromDegrees(0)));
+        return getFieldToVehicleInches().transformBy(Pose2d.fromRotation(Rotation2d.fromDegrees(0)));
     }
 
     private Translation2d getCameraToVisionTargetPose(TargetInfo target, boolean high, Vision source) {

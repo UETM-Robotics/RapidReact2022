@@ -61,7 +61,8 @@ public class RobotStateEstimator implements Loop{
 
     public void resetOdometry(Pose2d startPose) {
         drive_.subsystemHome();
-        odometry.resetPosition(startPose, drive_.getRotation());
+        odometry.resetPosition(new Pose2d(0, 0, Rotation2d.fromDegrees(0)), drive_.getRotation());
+        robotState.setInitialPose(startPose);
     }
 
 }
