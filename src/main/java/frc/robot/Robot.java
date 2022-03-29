@@ -20,9 +20,12 @@ import frc.robot.Utilities.Geometry.Pose2d;
 import frc.robot.Utilities.Geometry.Rotation2d;
 import frc.robot.subsystems.DriveTrain;
 import frc.robot.subsystems.Intake;
+import frc.robot.subsystems.Shooter;
 import frc.robot.subsystems.Vision;
 import frc.robot.subsystems.DriveTrain.DriveControlState;
-import frc.robot.subsystems.Vision.LedMode;
+import frc.robot.subsystems.Shooter.BeltIndexerControlMode;
+import frc.robot.subsystems.Shooter.HoodControlMode;
+import frc.robot.subsystems.Shooter.ShooterControlMode;
 
 /**
  * The VM is configured to automatically run this class, and to call the functions corresponding to
@@ -44,6 +47,7 @@ public class Robot extends TimedRobot {
   private Vision vision;
   private Intake intake;
   private RobotStateEstimator robotStateEstimator;
+  private Shooter shooter;
 
   private AutoModeExecuter autoModeExecuter;
   private HIDController mHidController;
@@ -66,6 +70,7 @@ public class Robot extends TimedRobot {
     dTrain = DriveTrain.getInstance();
     vision = Vision.getInstance();
     intake = Intake.getInstance();
+    shooter = Shooter.getInstance();
 
     dTrain.init();
     dTrain.registerEnabledLoops(mLooper);
@@ -76,6 +81,9 @@ public class Robot extends TimedRobot {
     intake.init();
     intake.registerEnabledLoops(mLooper);
 
+    shooter.init();
+    shooter.registerEnabledLoops(mLooper);
+
 
     mHidController = HIDController.getInstance();
 
@@ -84,7 +92,8 @@ public class Robot extends TimedRobot {
 
     mAutoModeSelector.updateModeCreator();
 
-    vision.setLed(LedMode.OFF);
+
+    vision.setLEDS(false);
 
   }
 
@@ -195,6 +204,10 @@ public class Robot extends TimedRobot {
 			mHidController.start();
 
       dTrain.setControlMode(DriveControlState.DRIVER_CONTROL);
+
+      shooter.setShooterControlMode(ShooterControlMode.DISABLED);
+      shooter.setBeltIndexerControlMode(BeltIndexerControlMode.DISABLED);
+      shooter.setHoodControlMode(HoodControlMode.DISABLED);
       // shooter.setShooterControlMode(ShooterControlMode.DISABLED);
       // shooter.setShooterVelocity(-3100);
       // shooter.setTopRollerVelocity(-3100);
