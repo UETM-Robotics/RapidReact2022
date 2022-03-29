@@ -128,6 +128,11 @@ public class Shooter extends Subsystem implements CustomSubsystem {
                         beltIndexerMotor.set(0.8);
 
                         break;
+                    case REVERSED:
+
+                        beltIndexerMotor.set(-0.8);
+
+                        break;
                     case SELF_AWARE:
                         break;
                     default:
@@ -303,6 +308,7 @@ public class Shooter extends Subsystem implements CustomSubsystem {
     public enum BeltIndexerControlMode {
         SELF_AWARE,
         ENABLED,
+        REVERSED,
         DISABLED;
     }
 
