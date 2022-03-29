@@ -41,10 +41,11 @@ public class SetShooterAction implements Action {
     @Override
     public boolean isFinished() {
         // TODO Auto-generated method stub
-        if(mIsAuto)
-            return ballsShot == balls_to_shoot;
-        else
-            return (!mButtonGetterMethod.get());
+        // if(mIsAuto)
+        //     return ballsShot == balls_to_shoot;
+        // else
+        //     return (!mButtonGetterMethod.get());
+        return (!mButtonGetterMethod.get());
     }
 
     @Override
@@ -52,25 +53,25 @@ public class SetShooterAction implements Action {
         
         if(mIsAuto) {
 
-            triggerArmed = shooter.getShooterVelocity() > shooter.getShooterVelocitySetpoint() * TechConstants.kShooterArmVelocityPercentage;
+            // triggerArmed = shooter.getShooterVelocity() > shooter.getShooterVelocitySetpoint() * TechConstants.kShooterArmVelocityPercentage;
             
 
-            if(triggerArmed) {
+            // if(triggerArmed) {
 
-                shooter.setBeltIndexerControlMode(BeltIndexerControlMode.ENABLED);
-                triggerFired = shooter.getShooterVelocity() < shooter.getShooterVelocitySetpoint() * TechConstants.kShooterTriggerVelocityPercentage;
+            //     shooter.setBeltIndexerControlMode(BeltIndexerControlMode.ENABLED);
+            //     triggerFired = shooter.getShooterVelocity() < shooter.getShooterVelocitySetpoint() * TechConstants.kShooterTriggerVelocityPercentage;
                 
-                if(triggerFired) {
-                    SmartDashboard.putString("Trigger Status", "FIRED");
-                    shooter.setBeltIndexerControlMode(BeltIndexerControlMode.DISABLED);
-                    ballsShot++;
-                } else {
-                    SmartDashboard.putString("Trigger Status", "ARMED");
-                }
+            //     if(triggerFired) {
+            //         SmartDashboard.putString("Trigger Status", "FIRED");
+            //         shooter.setBeltIndexerControlMode(BeltIndexerControlMode.DISABLED);
+            //         ballsShot++;
+            //     } else {
+            //         SmartDashboard.putString("Trigger Status", "ARMED");
+            //     }
 
-            } else {
-                SmartDashboard.putString("Trigger Status", "DISARMED");
-            }
+            // } else {
+            //     SmartDashboard.putString("Trigger Status", "DISARMED");
+            // }
         }
         
     }
@@ -89,12 +90,16 @@ public class SetShooterAction implements Action {
         // shooter.setShooterControlMode(ShooterControlMode.INTERPOLATING);
         // shooter.setHoodControlMode(HoodControlMode.INTERPOLATING);
 
-        shooter.setShooterControlMode(ShooterControlMode.VELOCITY);
+        // shooter.setShooterControlMode(ShooterControlMode.VELOCITY);
 
+        shooter.setShooterControlMode(ShooterControlMode.OPEN_LOOP);
+        
+        shooter.setShooterVelocitySetpoint(0.6);
+        
 
-        //TODO: USE THESE VALUES TO GENERATE POLYNOMIAL REGRESSION
-        shooter.setShooterVelocitySetpoint(3500);
-        shooter.setHoodPositionSetpoint(0);
+        // //TODO: USE THESE VALUES TO GENERATE POLYNOMIAL REGRESSION
+        // shooter.setShooterVelocitySetpoint(3500);
+        // shooter.setHoodPositionSetpoint(0);
     }
 
 
