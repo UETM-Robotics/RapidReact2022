@@ -7,8 +7,10 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Actions.AimAtHub;
+import frc.robot.Actions.SetShooterAction;
 import frc.robot.Actions.Autonomy.AutomatedAction;
 import frc.robot.Actions.Framework.TeleopActionRunner;
+import frc.robot.Actions.OperatedActions.SetBeltAction;
 import frc.robot.Actions.OperatedActions.SetIntakeAction;
 import frc.robot.Loops.CrashTrackingRunnable;
 import frc.robot.Utilities.Controllers;
@@ -201,7 +203,23 @@ public class HIDController {
 			TeleopActionRunner.runAction(AutomatedAction.fromAction(
 				new AimAtHub(false, () -> j.getRawButton(b)), 300));
 		});
-        
+
+
+		registerTriggerPressControl(driverController, 4, (j, b) -> {
+			TeleopActionRunner.runAction(AutomatedAction.fromAction(
+				new SetShooterAction(false, () -> j.getTriggerPressed(b, TechConstants.kControllerTriggerThreshold)), 300));
+		});
+
+		// registerButtonPressControl(driverController, 6, (j, b) -> {
+		// 	TeleopActionRunner.runAction(AutomatedAction.fromAction(
+		// 		new SetBeltAction(false, () -> j.getRawButton(b)), 300));
+		// });
+
+		// registerButtonPressControl(driverController, 5, (j, b) -> {
+		// 	TeleopActionRunner.runAction(AutomatedAction.fromAction(
+		// 		new SetBeltAction(true, () -> j.getRawButton(b)), 300));
+		// });
+
 
 		//Logger
 		mControlFunctions.add( () -> {
