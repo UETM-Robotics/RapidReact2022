@@ -6,6 +6,7 @@ import frc.robot.RobotState;
 import frc.robot.Actions.Framework.Action;
 import frc.robot.Utilities.Constants.TechConstants;
 import frc.robot.Utilities.Geometry.Pose2d;
+import frc.robot.Utilities.Geometry.Translation2d;
 import frc.robot.subsystems.DriveTrain;
 import frc.robot.subsystems.DriveTrain.DriveControlState;
 
@@ -65,10 +66,11 @@ public class AimAtHub implements Action {
         DriveTrain.getInstance().setControlMode(DriveControlState.AUTO_AIMING);
         
         Pose2d currPose = RobotState.getInstance().getFieldToVehicleMeters();
+        Translation2d hubPosition = RobotState.getInstance().getFieldToHubMeters();
 
         DriveTrain.getInstance().setHubAimingGuess( 
-            Math.atan2(TechConstants.kHubPositionYMeters - currPose.y(),
-                        TechConstants.kHubPositionXMeters - currPose.x()) - currPose.getRotation().getDegrees());
+            Math.atan2(hubPosition.y() - currPose.y(),
+                        hubPosition.x() - currPose.x()) - currPose.getRotation().getDegrees());
 
     }
 

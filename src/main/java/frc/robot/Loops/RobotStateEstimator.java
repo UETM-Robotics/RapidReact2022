@@ -5,12 +5,14 @@ import frc.robot.Utilities.Geometry.Pose2d;
 import frc.robot.Utilities.Geometry.Rotation2d;
 import frc.robot.Utilities.RamseteTrajectory.DifferentialDriveOdometry;
 import frc.robot.subsystems.DriveTrain;
+import frc.robot.subsystems.Vision;
 
 public class RobotStateEstimator implements Loop{
 
     private static final RobotStateEstimator instance = new RobotStateEstimator();
 
     DriveTrain drive_ = DriveTrain.getInstance();
+    Vision vision_ = Vision.getInstance();
     RobotState robotState = RobotState.getInstance();
 
     private DifferentialDriveOdometry odometry;
@@ -44,6 +46,10 @@ public class RobotStateEstimator implements Loop{
 
             robotState.updateFieldToRobotPose( odometry.update( drive_.getRotation(), 
             drive_.getLeftDistanceMeters(), drive_.getRightDistanceMeters() ) );
+
+            if(vision_.isTargetFound() && vision_.isVisionEnabled()) {
+                robotState.updateFieldToHubPose(vision_.getTargetDistance());
+            }
 
         }
     }

@@ -7,6 +7,8 @@ public class TechConstants {
     public static final int kControllerThreadPriority = 9;
 
     public static double kControllerTriggerThreshold = 0.75;
+
+    
     public static final double kJoystickDeadband = 0.1;
 
     public static final double kJoystickJogThreshold = 0.4;
@@ -32,8 +34,13 @@ public class TechConstants {
     public static final double kVPW = 2.0 * Math.tan(Math.toRadians(kHorizontalFOV / 2.0));
     public static final double kVPH = 2.0 * Math.tan(Math.toRadians(kVerticalFOV / 2.0));
 
-    //TODO: FIGURE THIS NUMBER OUT
+
     public static final double kHubTargetHeight = 104.0; //inches
+
+    //TODO: MEASURE HEIGHT OF LIMELIGHT FOR THIS AND FIND PROPER ANGLE
+    public static double kCameraLensHeightToTargetHeightDelta; // inches
+    public static double kCameraLensAngleToHorizontal = 38;
+    
     public static final double kHubPositionXMeters = 8.24;
     public static final double kHubPositionYMeters = 4.1;
 

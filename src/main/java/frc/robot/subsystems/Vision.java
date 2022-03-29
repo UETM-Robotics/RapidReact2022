@@ -1,284 +1,247 @@
 package frc.robot.subsystems;
 
-import java.util.List;
-
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-
-import frc.robot.RobotState;
-import frc.robot.Lib.vision.TargetInfo;
+import edu.wpi.first.wpilibj.DriverStation;
 import frc.robot.Loops.Loop;
 import frc.robot.Loops.Looper;
 import frc.robot.Utilities.CustomSubsystem;
-import frc.robot.Utilities.Util;
+import frc.robot.Utilities.ElapsedTimer;
 import frc.robot.Utilities.Constants.TechConstants;
 import frc.robot.Utilities.Geometry.Pose2d;
 import frc.robot.Utilities.Geometry.Rotation2d;
 import frc.robot.Utilities.Geometry.Translation2d;
 
-
-/**
- * Subsystem for interacting with the Limelight 2
- */
 public class Vision extends Subsystem implements CustomSubsystem {
 
-    private static final Vision instance = new Vision( new LimelightConstants() );
+    
+
+    private static Vision instance = new Vision();
+    private PeriodicIO mPeriodicIO = new PeriodicIO();
+
+    private TargetMode mTargetMode = TargetMode.HUB;
+	private boolean mVisionEnabled = true;
+
+    private double[] mZeroArray = new double[]{0, 0, 0, 0};
+
+    private NetworkTable mCurrentTargetingLimelightNT = NetworkTableInstance.getDefault().getTable("limelight");
+
+	private NetworkTable limelightShooter = NetworkTableInstance.getDefault().getTable("limelight");
+	//private NetworkTableEntry pipelineEntry = limelightShooter.getEntry("pipeline");
+
+	//TODO: REMEMBER TO SET THESE BEFORE ATTEMPTING ANYTHING!!!
+	private final int offsetPipeline = 0;
+	private final int nonOffsetPipeline = 0;
+
+    private final ElapsedTimer loopTimer = new ElapsedTimer();
+
+	public boolean offsetEnabled;
+
 
     public static Vision getInstance() {
         return instance;
     }
 
 
-    public static final int kDefaultPipeline = 0;
-
-    
-    public static class LimelightConstants {
-        public String kName = "Aiming Limelight";
-        public String kTableName = "limelight";
-
-        //TODO: DETERMINE THESE CONSTANTS
-        public double kHeight = 0.0;
-        public Pose2d kShooterToLens = Pose2d.identity();
-        public Rotation2d kHorizontalPlaneToLens = Rotation2d.identity(); //limelight lens w.r.t. shooter
-    }
-
-    private NetworkTable mNetworkTable;
-
-    private Vision(LimelightConstants constants) {
-        mConstants = constants;
-        mNetworkTable = NetworkTableInstance.getDefault().getTable(constants.kTableName);
-    }
-
-    public static class PeriodicIO {
-        // INPUTS
-        public double latency;
-        public int givenLedMode;
-        public int givenPipeline;
-        public double xOffset;
-        public double yOffset;
-        public double area;
-
-        // OUTPUTS
-        public int ledMode = 1; // 0 - use pipeline mode, 1 - off, 2 - blink, 3 - on
-        public int camMode = 0; // 0 - vision processing, 1 - driver camera
-        public int pipeline = 0; // 0 - 9
-        public int stream = 2; // sets stream layout if another webcam is attached
-        public int snapshot = 0; // 0 - stop snapshots, 1 - 2 Hz
+    private Vision() {
+		offsetEnabled = true;
     }
 
 
-    private LimelightConstants mConstants = null;
-    private PeriodicIO mPeriodicIO = new PeriodicIO();
-    private boolean mOutputsHaveChanged = true;
-    private double[] mZeroArray = new double[]{0, 0, 0, 0, 0, 0, 0, 0};
-    private List<TargetInfo> mTargets = new ArrayList<>();
-    private boolean mSeesTarget = false;
-
-    public Pose2d getShooterToLens() {
-        return mConstants.kShooterToLens;
-    }
-
-    public double getLensHeight() {
-        return mConstants.kHeight;
-    }
-
-    public Rotation2d getHorizontalPlaneToLens() {
-        return mConstants.kHorizontalPlaneToLens;
-    }
-
-
-    @Override
-    public synchronized void readPeriodicInputs() {
-        mPeriodicIO.latency = mNetworkTable.getEntry("tl").getDouble(0) / 1000.0 + TechConstants.kImageCaptureLatency;
-        mPeriodicIO.givenLedMode = (int) mNetworkTable.getEntry("ledMode").getDouble(1.0);
-        mPeriodicIO.givenPipeline = (int) mNetworkTable.getEntry("pipeline").getDouble(0);
-        mPeriodicIO.xOffset = mNetworkTable.getEntry("tx").getDouble(0.0);
-        mPeriodicIO.yOffset = mNetworkTable.getEntry("ty").getDouble(0.0);
-        mPeriodicIO.area = mNetworkTable.getEntry("ta").getDouble(0.0);
-        mSeesTarget = mNetworkTable.getEntry("tv").getDouble(0) == 1.0;
-    }
-
-    @Override
-    public void writePeriodicOutputs() {
-        if (mPeriodicIO.givenLedMode != mPeriodicIO.ledMode ||
-                mPeriodicIO.givenPipeline != mPeriodicIO.pipeline) {
-            System.out.println("Table has changed from expected, retrigger!!");
-            mOutputsHaveChanged = true;
-        }
-        if (mOutputsHaveChanged) {
-            mNetworkTable.getEntry("ledMode").setNumber(mPeriodicIO.ledMode);
-            mNetworkTable.getEntry("camMode").setNumber(mPeriodicIO.camMode);
-            mNetworkTable.getEntry("pipeline").setNumber(mPeriodicIO.pipeline);
-            mNetworkTable.getEntry("stream").setNumber(mPeriodicIO.stream);
-            mNetworkTable.getEntry("snapshot").setNumber(mPeriodicIO.snapshot);
-
-            mOutputsHaveChanged = false;
-        }
-    }
-
-
-
-    private Loop mLoop = new Loop() {
+    private final Loop mLoop = new Loop() {
 
         @Override
         public void onFirstStart(double timestamp) {
-        }
+            synchronized(Vision.this) {
 
-        @Override
-        public void onStart(double timestamp) {
-            setLed(LedMode.OFF);
-            RobotState.getInstance().resetVision();
-        }
-
-        @Override
-        public void onLoop(double timestamp, boolean isAuto) {
-            synchronized( Vision.this ) {
-                RobotState.getInstance().addVisionUpdate(timestamp - getLatency(), getTarget(), instance);
             }
         }
 
         @Override
+        public void onStart(double timestamp) {
+            synchronized(Vision.this) {
+
+            }
+        }
+
+        @Override
+        public void onLoop(double timestamp, boolean isAuto) {
+            loopTimer.start();
+            synchronized(Vision.this) {
+
+				switch(mTargetMode) {
+					case BlUE_CARGO:
+						//TODO: FOR POSTERITY PURPOSES
+						break;
+					case HUB:
+						mPeriodicIO.pipeline_front = mVisionEnabled ? 0 : 0;
+						break;
+					case RED_CARGO:
+						break;
+					default:
+						break;
+
+				}
+
+            }
+
+			
+
+			readPeriodicInputs();
+            mPeriodicIO.vision_loop_time += loopTimer.hasElapsed();
+        }
+
+        @Override
         public void onStop(double timestamp) {
-            // TODO Auto-generated method stub
+            stop();
         }
 
     };
 
-
-
-    public synchronized void setLed(LedMode mode) {
-        if (mode.ordinal() != mPeriodicIO.ledMode) {
-            mPeriodicIO.ledMode = mode.ordinal();
-            mOutputsHaveChanged = true;
-        }
+    @Override
+    public void registerEnabledLoops(Looper in) {
+        in.register(mLoop);
     }
 
-    
-    public synchronized void setPipeline(int mode) {
-        if (mode != mPeriodicIO.pipeline) {
-            RobotState.getInstance().resetVision();
-            mPeriodicIO.pipeline = mode;
 
-            System.out.println(mPeriodicIO.pipeline + ", " + mode);
-            mOutputsHaveChanged = true;
-        }
+    @Override
+    public void stop() {
+        setVisionEnabled(false);
     }
 
-    public synchronized void triggerOutputs() {
-        mOutputsHaveChanged = true;
-    }
+    public boolean isVisionEnabled() {
+		return mVisionEnabled;
+	}
 
-    public synchronized int getPipeline() {
-        return mPeriodicIO.pipeline;
-    }
+	public boolean isTargetFound() {
+		return mVisionEnabled && mPeriodicIO.target_valid > 0;
+	}
 
-    public synchronized boolean seesTarget() {
-        return mSeesTarget;
-    }
+	public double getTargetDistance() {
+		return mVisionEnabled ? mPeriodicIO.target_distance : 0;
+	}
 
-    public synchronized List<TargetInfo> getTarget() {
-        List<TargetInfo> targets = getRawTargetInfos();
-        if (seesTarget() && targets != null) {
-            return targets;
-        }
+	public double getTargetHorizAngleDev() {
+		return mVisionEnabled ? mPeriodicIO.target_horizontal_deviation : 0;
+	}
 
-        return null;
-    }
+	public double getTargetVertAngleDev() {
+		return mVisionEnabled ? mPeriodicIO.target_vertical_deviation : 0;
+	}
 
-    private synchronized List<TargetInfo> getRawTargetInfos() {
-        List<double[]> corners = getTopCorners();
-        if (corners == null) {
-            return null;
-        }
+	public synchronized void setVisionEnabled(boolean enabled) {
+		mVisionEnabled = enabled;
+	}
 
-        double slope = 1.0;
-        if (Math.abs(corners.get(1)[0] - corners.get(0)[0]) > Util.kEpsilon) {
-            slope = (corners.get(1)[1] - corners.get(0)[1]) /
-                    (corners.get(1)[0] - corners.get(0)[0]);
-        }
+	public synchronized void setTargetMode(TargetMode targetMode) {
+		mTargetMode = targetMode;
+	}
 
-        mTargets.clear();
-        for (int i = 0; i < 2; ++i) {
-            // Average of y and z;
-            double y_pixels = corners.get(i)[0];
-            double z_pixels = corners.get(i)[1];
+	public synchronized void setLEDS(boolean enabled) {
+		mCurrentTargetingLimelightNT.getEntry("ledMode").setNumber(enabled ? 3 : 1);
+	}
 
-            // Redefine to robot frame of reference.
-            double nY = -((y_pixels - 160.0) / 160.0);
-            double nZ = -((z_pixels - 120.0) / 120.0);
+	public double getTargetSkew() {
+		return mPeriodicIO.target_skew;
+	}
 
-            double y = TechConstants.kVPW / 2 * nY;
-            double z = TechConstants.kVPH / 2 * nZ;
+    public Translation2d getCameraToTargetTranslation() {
+		// Convert to spherical coordinates https://en.wikipedia.org/wiki/Spherical_coordinate_system
+		Rotation2d phi = Rotation2d.fromDegrees(-1 * mPeriodicIO.target_horizontal_deviation);
+		Rotation2d theta = Rotation2d.fromDegrees(90).rotateBy(Rotation2d.fromDegrees(mPeriodicIO.target_vertical_deviation + TechConstants.kCameraLensAngleToHorizontal).inverse());
 
-            TargetInfo target = new TargetInfo(y, z);
-            target.setSkew(slope);
-            mTargets.add(target);
-        }
+		// Convert to cartesian unit vector (radius r is implicitly 1, inclination theta, azimuth phi)
+		double vector_x = theta.sin() * phi.cos();
+		double vector_y = theta.sin() * phi.sin();
+		double vector_z = theta.cos();
 
-        return mTargets;
-    }
+		// Determine the scaling of the z component of the unit vector to get to the plane
+		double scaling = TechConstants.kCameraLensHeightToTargetHeightDelta / vector_z;
 
-    /**
-     * Returns raw top-left and top-right corners
-     *
-     * @return list of corners: index 0 - top left, index 1 - top right
-     */
-    private List<double[]> getTopCorners() {
-        double[] xCorners = mNetworkTable.getEntry("tcornx").getDoubleArray(mZeroArray);
-        double[] yCorners = mNetworkTable.getEntry("tcorny").getDoubleArray(mZeroArray);
-        mSeesTarget = mNetworkTable.getEntry("tv").getDouble(0) == 1.0;
+		// Scale the x and y component by said scaling.
+		return new Translation2d(vector_x * scaling, vector_y * scaling);
+	}
 
-        // something went wrong
-        if (!mSeesTarget ||
-                Arrays.equals(xCorners, mZeroArray) || Arrays.equals(yCorners, mZeroArray)
-                || xCorners.length != 8 || yCorners.length != 8) {
-            return null;
-        }
 
-        return extractTopCornersFromBoundingBoxes(xCorners, yCorners);
-    }
+	public synchronized void setOffsetEnabled(boolean enabled) {
+		if(enabled == offsetEnabled)
+			return;
+		
+		mCurrentTargetingLimelightNT.getEntry("pipeline").setNumber(enabled ? offsetPipeline : nonOffsetPipeline);
+	}
 
-    private static final Comparator<Translation2d> xSort = Comparator.comparingDouble(Translation2d::x);
-    private static final Comparator<Translation2d> ySort = Comparator.comparingDouble(Translation2d::y);
+	public synchronized boolean getOffsetEnabled() {
+		return offsetEnabled;
+	}
 
-    /**
-     * Returns raw top-left and top-right corners
-     *
-     * @return list of corners: index 0 - top left, index 1 - top right
-     */
-    public static List<double[]> extractTopCornersFromBoundingBoxes(double[] xCorners, double[] yCorners) {
-        List<Translation2d> corners = new ArrayList<>();
-        for (int i = 0; i < xCorners.length; i++) {
-            corners.add(new Translation2d(xCorners[i], yCorners[i]));
-        }
 
-        corners.sort(xSort);
+	public synchronized void readPeriodicInputs() {
+		loopTimer.start();
+		try {
+			if (mVisionEnabled) {
+				mPeriodicIO.target_valid = mCurrentTargetingLimelightNT.getEntry("tv").getDouble(0);
+				mPeriodicIO.target_horizontal_deviation = mCurrentTargetingLimelightNT.getEntry("tx").getDouble(0);
+				mPeriodicIO.target_vertical_deviation = mCurrentTargetingLimelightNT.getEntry("ty").getDouble(0);
+				mPeriodicIO.target_area = mCurrentTargetingLimelightNT.getEntry("ta").getDouble(0);
+				mPeriodicIO.target_skew = mCurrentTargetingLimelightNT.getEntry("ts").getDouble(0);
+				mPeriodicIO.target_latency = mCurrentTargetingLimelightNT.getEntry("tl").getDouble(0);
+				mPeriodicIO.x_corners = limelightShooter.getEntry("tcornx").getDoubleArray(mZeroArray);
+				mPeriodicIO.y_corners = limelightShooter.getEntry("tcorny").getDoubleArray(mZeroArray);
 
-        List<Translation2d> left = corners.subList(0, 4);
-        List<Translation2d> right = corners.subList(4, 8);
+				if (mPeriodicIO.target_valid > 0) {
+					Translation2d cameraToTargetTranslation = getCameraToTargetTranslation();
+                    //TODO: FIX TURRET REFERENCES
+					// mPeriodicIO.camera_to_target_pose = Constants.fieldToOuterTarget.transformBy(
+					// 		new Pose2d(cameraToTargetTranslation.translateBy(Constants.kTurretToCamera.inverse().getTranslation()), Shooter.getInstance().getLatestFieldToTurretPose().getRotation()).inverse()
+					// 				.transformBy(Shooter.getInstance().getLatestVehicleToTurretPose().inverse())
+					// );
+					//RobotState.getInstance().addFieldToVehicleObservation(Timer.getFPGATimestamp(), mPeriodicIO.camera_to_target_pose);
+					mPeriodicIO.target_distance = cameraToTargetTranslation.distance(Translation2d.identity());
+				}
+			}
+			else {
+				mPeriodicIO.target_valid = 0;
+				mPeriodicIO.target_horizontal_deviation = 0;
+				mPeriodicIO.target_vertical_deviation = 0;
+				mPeriodicIO.target_area = 0;
+				mPeriodicIO.target_skew = 0;
+				mPeriodicIO.target_latency = 0;
+				mPeriodicIO.camera_to_target_pose = Pose2d.identity();
+				mPeriodicIO.target_distance = 0;
+			}
+		}
+		catch (Exception ex) {
+            DriverStation.reportError("Error setting vision outputs", true);
+		}
+		mPeriodicIO.vision_loop_time = loopTimer.hasElapsed();
+	}
 
-        left.sort(ySort);
-        right.sort(ySort);
 
-        List<Translation2d> leftTop = left.subList(0, 2);
-        List<Translation2d> rightTop = right.subList(0, 2);
+    @SuppressWarnings("WeakerAccess")
+	public static class PeriodicIO {
+		//Making members public here will automatically add them to logs
+		//Read values
+		public double target_valid;
+		public double target_horizontal_deviation;
+		double target_vertical_deviation;
+		public double target_area;
+		double target_skew;
+		double target_latency;
+		double target_distance;
+		double[] x_corners;
+		double[] y_corners;
+		public Pose2d camera_to_target_pose;
 
-        leftTop.sort(xSort);
-        rightTop.sort(xSort);
+		//Written values
+		int pipeline_front;
+		public double vision_loop_time;
+	}
 
-        Translation2d leftCorner = leftTop.get(0);
-        Translation2d rightCorner = rightTop.get(1);
-
-        return List.of(new double[]{leftCorner.x(), leftCorner.y()}, new double[]{rightCorner.x(), rightCorner.y()});
-    }
-
-    public double getLatency() {
-        return mPeriodicIO.latency;
-    }
+	public enum TargetMode {
+		HUB,
+        RED_CARGO,
+        BlUE_CARGO;
+	}
 
     @Override
     public void init() {
@@ -286,24 +249,12 @@ public class Vision extends Subsystem implements CustomSubsystem {
         
     }
 
+
     @Override
     public void subsystemHome() {
         // TODO Auto-generated method stub
         
     }
 
-    @Override
-    public void registerEnabledLoops(Looper in) {
-        in.register(mLoop);
-    }
-
-    @Override
-    public void stop() {
-        // TODO Auto-generated method stub
-        
-    }
     
-    public enum LedMode {
-        PIPELINE, OFF, BLINK, ON
-    }
 }
