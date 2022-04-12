@@ -4,9 +4,20 @@
 
 package frc.robot;
 
+import java.util.Optional;
+
+import frc.robot.Utilities.Geometry.Rotation2d;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import frc.robot.Autonomous.Framework.AutoModeBase;
+import frc.robot.Autonomous.Framework.AutoModeExecutor;
+import frc.robot.Loops.Looper;
+import frc.robot.Loops.RobotStateEstimator;
+import frc.robot.subsystems.DriveTrain;
+import frc.robot.subsystems.DriveTrain.DriveControlState;
+import frc.robot.Utilities.Geometry.Pose2d;
 
 /**
  * The VM is configured to automatically run this class, and to call the functions corresponding to
@@ -16,23 +27,47 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler;
  */
 public class Robot extends TimedRobot {
   private Command m_autonomousCommand;
-
-  private RobotContainer m_robotContainer;
-
   /**
    * This function is run when the robot is first started up and should be used for any
    * initialization code.
    */
+
+  private Looper mLooper;
+  private AutoModeSelector mAutoModeSelector = new AutoModeSelector();
+  
+  private DriveTrain dTrain;
+  private RobotStateEstimator robotStateEstimator;
+
+  private AutoModeExecutor autoModeExecutor;
+  private HIDController mHidController;
+
+
+
   @Override
   public void robotInit() {
     // Instantiate our RobotContainer.  This will perform all our button bindings, and put our
     // autonomous chooser on the dashboard.
-    m_robotContainer = new RobotContainer();
+
+    mLooper = new Looper();
+
+    dTrain = DriveTrain.getInstance();
+
+    dTrain.init();
+    dTrain.registerEnabledLoops(mLooper);
+
+
+    mHidController = HIDController.getInstance();
+
+    robotStateEstimator = RobotStateEstimator.getInstance();
+    mLooper.register(robotStateEstimator);
+
+    mAutoModeSelector.updateModeCreator();
+
   }
 
   /**
-   * This function is called every robot packet, no matter the mode. Use this for items like
-   * diagnostics that you want ran during disabled, autonomous, teleoperated and test.
+   * This function is called every 20 ms, no matter the mode. Use this for items like diagnostics
+   * that you want ran during disabled, autonomous, teleoperated and test.
    *
    * <p>This runs after the mode specific periodic functions, but before LiveWindow and
    * SmartDashboard integrated updating.
@@ -44,24 +79,51 @@ public class Robot extends TimedRobot {
     // and running subsystem periodic() methods.  This must be called from the robot's periodic
     // block in order for anything in the Command-based framework to work.
     CommandScheduler.getInstance().run();
+
+
+    mAutoModeSelector.outputToSmartDashboard();
   }
 
   /** This function is called once each time the robot enters Disabled mode. */
   @Override
-  public void disabledInit() {}
+  public void disabledInit() {
+
+    exitAuto();
+
+    mLooper.stop();
+
+    mAutoModeSelector.reset();
+    mAutoModeSelector.updateModeCreator();
+    autoModeExecutor = new AutoModeExecutor();
+
+    mHidController.stop();
+
+  }
 
   @Override
-  public void disabledPeriodic() {}
+  public void disabledPeriodic() {
+
+    mAutoModeSelector.updateModeCreator();
+    Optional<AutoModeBase> autoMode = mAutoModeSelector.getAutoMode();
+
+    if (autoMode.isPresent() && autoMode.get() != autoModeExecutor.getAutoMode()) {
+      System.out.println("Set auto mode to: " + autoMode.get().getClass().toString());
+      autoModeExecutor.setAutoMode(autoMode.get());
+    }
+
+  }
 
   /** This autonomous runs the autonomous command selected by your {@link RobotContainer} class. */
   @Override
   public void autonomousInit() {
-    m_autonomousCommand = m_robotContainer.getAutonomousCommand();
 
     // schedule the autonomous command (example)
     if (m_autonomousCommand != null) {
       m_autonomousCommand.schedule();
     }
+
+
+    
   }
 
   /** This function is called periodically during autonomous. */
@@ -77,6 +139,34 @@ public class Robot extends TimedRobot {
     if (m_autonomousCommand != null) {
       m_autonomousCommand.cancel();
     }
+
+
+    try {
+      System.out.println("Beginning TeleOP");
+
+			exitAuto();
+
+      dTrain.setControlMode(DriveControlState.OPEN_LOOP);
+      
+			dTrain.setBrakeMode(false);
+      
+
+      //TODO: ONLY FOR DEBUGGING
+      robotStateEstimator.resetOdometry( new Pose2d(0, 0, Rotation2d.fromDegrees(-90)) );
+
+      
+			mHidController.start();
+
+      dTrain.setControlMode(DriveControlState.DRIVER_CONTROL);
+
+
+      mLooper.start(true);
+
+
+		} catch (Throwable t) {
+      DriverStation.reportError("Fatal Error Initializing Teleop", true);
+			throw t;
+		}
   }
 
   /** This function is called periodically during operator control. */
@@ -92,4 +182,16 @@ public class Robot extends TimedRobot {
   /** This function is called periodically during test mode. */
   @Override
   public void testPeriodic() {}
+  
+  private void exitAuto() {
+		try {
+			if (autoModeExecutor != null)
+				autoModeExecutor.stop();
+
+
+			autoModeExecutor = null;
+		} catch (Throwable t) {
+		}
+	}
+
 }
